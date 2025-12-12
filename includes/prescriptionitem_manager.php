@@ -12,21 +12,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header("Content-Type: application/json");
 
-function getPrescriptionItems($prescriptionid, $sort) { 
+function getPrescriptionItems($prescriptionid) { 
     global $db;
-    if($sort == 0){
-        $stmt = $db->prepare("SELECT * FROM prescriptionitem WHERE prescriptionid = ? ORDER BY name ASC");
-    }else{
-        $stmt = $db->prepare("SELECT * FROM prescriptionitem WHERE prescriptionid = ? ORDER BY name DESC");
-    }
+
+    $stmt = $db->prepare("SELECT * FROM prescriptionitem WHERE prescriptionid = ?");
     $stmt->execute([$prescriptionid]);
+
     $result = $stmt->get_result();
     $data = [];
+
     while ($row = $result->fetch_assoc()) {
         $data[] = $row;
     }
+
     return $data;
 }
+
 
 function getPrescriptionItemsByName($prescriptionid, $prescriptionname) {
     global $db;
