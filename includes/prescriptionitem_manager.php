@@ -1,11 +1,18 @@
 <?php
 include("db.php");
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type");
+    header("Access-Control-Max-Age: 86400");
+    http_response_code(200);
+    exit(0);
+}
 
-function getPrescriptionItems($prescriptionid, $sort) { //Sort: 0 = ASC, 1 = DESC
+header("Content-Type: application/json");
+
+function getPrescriptionItems($prescriptionid, $sort) { 
     global $db;
     if($sort == 0){
         $stmt = $db->prepare("SELECT * FROM prescriptionitem WHERE prescriptionid = ? ORDER BY name ASC");
@@ -54,57 +61,87 @@ function deletePrescriptionItem($prescriptionitemid) {
     return $stmt->affected_rows;
 }
 
-$action = $_GET['action'] ?? '';
+$action = $_REQUEST['action'] ?? '';
+$method = $_SERVER['REQUEST_METHOD'];
 
-switch ($action) {
-    case "getPrescriptionItems":
-        $prescriptionid = $_GET['prescriptionid'];
-        $sort = $_GET['sort'];
-        header('Content-Type: application/json');
-        echo json_encode(getPrescriptionItems($prescriptionid, $sort));
-        break;
+if ($method === 'GET') {
+        switch ($action) {
+        case "getPrescriptionItems":
+            $prescriptionid = $_GET['prescriptionid'] ?? '';
+            $sort = $_GET['sort'] ?? '';
+            echo json_encode(getPrescriptionItems($prescriptionid, $sort));
+            break;
+            
+        case "getPrescriptionItemsByName":
+            $prescriptionid = $_GET['prescriptionid'] ?? '';
+            $prescriptionname = $_GET['prescriptionname'] ?? '';
+            echo json_encode(getPrescriptionItemsByName($prescriptionid, $prescriptionname));
+            break;
+            
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid GET action']);
+            break;
+    }
+}
+elseif ($method === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+    
+    switch ($action) {
+       case "addPrescriptionItem":
+            $prescriptionid = $input['prescriptionid'] ?? '';
+            $name = $input['name'] ?? '';
+            $brand = $input['brand'] ?? '';
+            $quantity = $input['quantity'] ?? '';
+            $dosage = $input['dosage'] ?? '';
+            $frequency = $input['frequency'] ?? '';
+            $description = $input['description'] ?? '';
+            $substitutions = $input['substitutions'] ?? '';
+            
+            if (empty($prescriptionid) || empty($name)) {
+                echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+                break;
+            }
 
-    case "getPrescriptionItemsByName":
-        $prescriptionid = $_GET['prescriptionid'];
-        $prescriptionname = $_GET['prescriptionname'];
-        header('Content-Type: application/json');
-        echo json_encode(getPrescriptionItemsByName($prescriptionid, $prescriptionname));
-        break;
+             $newId = addPrescriptionItem($prescriptionid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions);
+            echo json_encode(['success' => true, 'prescriptionitem_id' => $newId]);
+            break;
 
-    case "addPrescriptionItem":
-        $prescriptionid = $_GET['prescriptionid'];
-        $name = $_GET['name'];
-        $brand = $_GET['brand'];
-        $quantity = $_GET['quantity'];
-        $dosage = $_GET['dosage'];
-        $frequency = $_GET['frequency'];
-        $description = $_GET['description'];
-        $substitutions = $_GET['substitutions'];
-        $newId = addPrescriptionItem($prescriptionid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions);
-        echo json_encode(['success' => true, 'prescriptionitem_id' => $newId]);
-        break;
+         case "updatePrescriptionItem":
+            $prescriptionitemid = $input['prescriptionitemid'] ?? '';
+            $name = $input['name'] ?? '';
+            $brand = $input['brand'] ?? '';
+            $quantity = $input['quantity'] ?? '';
+            $dosage = $input['dosage'] ?? '';
+            $frequency = $input['frequency'] ?? '';
+            $description = $input['description'] ?? '';
+            $substitutions = $input['substitutions'] ?? '';
+            
+            if (empty($prescriptionitemid)) {
+                echo json_encode(['success' => false, 'message' => 'Missing prescriptionitemid']);
+                break;
+            }
+            
+            $affectedRows = updatePrescriptionItem($prescriptionitemid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions);
+            echo json_encode(['success' => true, 'affected_rows' => $affectedRows]);
+            break;
 
-    case "updatePrescriptionItem":
-        $prescriptionitemid = $_GET['prescriptionitemid'];
-        $name = $_GET['name'];
-        $brand = $_GET['brand'];
-        $quantity = $_GET['quantity'];
-        $dosage = $_GET['dosage'];
-        $frequency = $_GET['frequency'];
-        $description = $_GET['description'];
-        $substitutions = $_GET['substitutions'];
-        $affectedRows = updatePrescriptionItem($prescriptionitemid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions);
-        echo json_encode(['success' => true, 'affected_rows' => $affectedRows]);
-        break;
+         case "deletePrescriptionItem":
+            $prescriptionitemid = $input['prescriptionitemid'] ?? '';
+            
+            if (empty($prescriptionitemid)) {
+                echo json_encode(['success' => false, 'message' => 'Missing prescriptionitemid']);
+                break;
+            }
+            
+            $affectedRows = deletePrescriptionItem($prescriptionitemid);
+            echo json_encode(['success' => true, 'affected_rows' => $affectedRows]);
+            break;
 
-    case "deletePrescriptionItem":
-        $prescriptionitemid = $_GET['prescriptionitemid'];
-        $affectedRows = deletePrescriptionItem($prescriptionitemid);
-        echo json_encode(['success' => true, 'affected_rows' => $affectedRows]);
-        break;
-
-    default:
-        echo json_encode(['success' => false, 'message' => 'Invalid action']);
-        break;
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid POST action']);
+            break;
+    }
+} else {
+    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
 }
 ?>
