@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta ManagePrescriptionItems="viewport" content="width=device-width, initial-scale=1">
+	<title>Manage Items</title>
+	<script src="script/prescriptionitem_manager.js" defer></script>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+	<!-- Navigation -->
+	<nav>
+		<div id="logo-container">
+			<img src="res/logo-image.png">
+			<img src="res/logo-text.png">
+		</div>
+	</nav>
+
+	<!--  Operations  -->
+	<div id="operation-container">
+		<div id="prescriptionitemoperation-wrapper">
+			<button id="back">Back</button>
+			<input type="text" name="search" placeholder="🔍︎ Search Medicine Name">	
+			<button id="sort">Sort Asc ↑</button>
+		</div>
+		<button id="add">Add</button>
+	</div>
+
+	<!--  Search Results Container  -->
+	<article id="searchresults-container">
+		<div class="card" id="header">
+			<span>Name</span>
+			<span>Brand</span>
+			<span>Quantity</span>
+			<span>Dosage</span>
+			<span>Action</span>
+		</div>
+	</article>
+
+	<!-- Add forms for items (Keep Hidden) -->
+	<div id="exit">
+	</div>
+
+	<div class="view-wrapper">
+		<div style="border-bottom: 2px solid #eaeaea;">
+			<span>Information</span>
+		</div>
+        <table class="list-wrapper">
+            <tr>
+                <td>
+                    <strong>Name</strong>
+                    <span id="name-value">Product Name</span>
+                </td>
+                <td>
+                    <strong>Brand</strong>
+                    <span id="brand-value">Product Brand</span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <strong>Quantity</strong>
+                    <span id="qty-value">Product Quantity</span>
+                </td>
+                <td>
+                    <strong>Dosage</strong>
+                    <span id="dosage-value">Product Dosage</span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <strong>Frequency</strong>
+                    <span id="frequency-value">Product Frequency</span>
+                </td>
+                <td>
+                    <strong>Substitutions</strong>
+                    <span id="substitutions-value">Product Substitutions</span>
+                </td>
+            </tr>
+        </table>
+        
+        <div class="description-section">
+            <strong>Description</strong>
+            <span id="description-value">Hola</span>
+        </div>
+    </div>
+
+    <!-- Add form -->
+    <div class="container">
+        <div class="form-wrapper">
+            <div class="header" style="border-bottom: 2px solid #eaeaea;">
+                <h2>Presciption Item Information</h2>
+            </div>
+            <p>Add Medicine Details</p>
+            
+            <form class="form-content">
+                <div class="form-grid">
+                	<div class="form-row">
+    
+   						<div class="form-group">
+	                        <label for="name">Product Name*</label>
+	                        <input type="text" id="name" name="name">
+                    	</div>
+                    
+	                    <div class="form-group">
+	                        <label for="brand">Brand*</label>
+	                        <input type="text" id="brand" name="brand">
+	                    </div>
+
+                	</div>
+
+                	<div class="form-row">
+
+	                    <div class="form-group">
+	                        <label for="quantity">Quantity*</label>
+	                        <input type="number" min="1" id="quantity" name="quantity" value="1">
+	                    </div>
+	                    
+	                    <div class="form-group">
+	                        <label for="dosage">Dosage*</label>
+	                        <input type="text" id="dosage" name="dosage">
+	                    </div>
+
+                	</div>
+                    
+                	<div class="form-row">
+	                    <div class="form-group">
+	                        <label for="frequency">Frequency*</label>
+	                        <input type="number" min="1" id="frequency" name="frequency" value="1">
+	                    </div>
+	                    
+	                    <div class="form-group">
+	                        <label for="substitutions">Substitutions*</label>
+	                        <input type="checkbox" id="substitutions" name="substitutions">
+	                    </div>
+                	</div>
+                </div>
+                
+                <div class="description-section">
+                    <label for="description">Description*</label>
+                    <textarea id="description" name="description"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>    
+
+</body>
+</html>
