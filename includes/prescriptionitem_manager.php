@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
 function getPrescriptionItems($prescriptionid) { 
@@ -70,7 +71,7 @@ if ($method === 'GET') {
         case "getPrescriptionItems":
             $prescriptionid = $_GET['prescriptionid'] ?? '';
             $sort = $_GET['sort'] ?? '';
-            echo json_encode(getPrescriptionItems($prescriptionid, $sort));
+            echo json_encode(getPrescriptionItems($prescriptionid));
             break;
             
         case "getPrescriptionItemsByName":
