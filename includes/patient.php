@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../db.php'; 
+require_once __DIR__ . '/db.php'; 
 if (!isset($db) || !($db instanceof mysqli)) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Database connection ($db) not found or not mysqli.']);
