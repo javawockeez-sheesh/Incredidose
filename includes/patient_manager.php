@@ -32,7 +32,7 @@ function getPatientByName($doctorid, $patientname) {
 function getPatientByEmail($email) {
 	global $db;
     $stmt = $db->prepare("SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE u.email = ?");
-    $stmt->execute([$emails]);
+    $stmt->execute([$email]);
     $result = $stmt->get_result();
     $data = [];
     while ($row = $result->fetch_assoc()) {
@@ -73,7 +73,7 @@ switch ($action) {
 	case "getPatientByEmail":
 		$email = $_GET['email'];
 		header('Content-Type: application/json');
-		echo json_encode(getPatients($email));
+		echo json_encode(getPatientByEmail($email));
 		break;
 
 	case "getPatientById":
