@@ -3,9 +3,12 @@ include("db.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Headers: Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token");
 
 session_start();
+
+
 
 function generateToken($length = 32) {
     return bin2hex(random_bytes($length / 2));
@@ -14,7 +17,6 @@ function generateToken($length = 32) {
 function loginUser($email, $password) {
     global $db;
     
-    // Prepare statement to avoid SQL injection
     $stmt = $db->prepare("SELECT userid, firstname, lastname, email, role, password FROM user WHERE email = ?");
     if (!$stmt) return ['success' => false, 'error' => $db->error];
     
@@ -27,15 +29,12 @@ function loginUser($email, $password) {
     
     $row = $result->fetch_assoc();
     
-    // Verify password (plain text comparison for now; consider using password_hash/password_verify in production)
     if ($row['password'] !== $password) {
         return ['success' => false, 'error' => 'invalid email or password'];
     }
-    
-    // Generate token for API authentication
+
     $token = generateToken();
     
-    // Store session data
     $_SESSION['userid'] = $row['userid'];
     $_SESSION['email'] = $row['email'];
     $_SESSION['firstname'] = $row['firstname'];
@@ -62,7 +61,6 @@ function logoutUser() {
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-// Accept JSON body for POST
 function getJsonBody() {
     $input = file_get_contents('php://input');
     if (!$input) return [];
