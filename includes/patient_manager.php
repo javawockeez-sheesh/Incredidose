@@ -36,7 +36,7 @@ function isDoctorOnly() {
 
 function getPatients($doctorid) {
     global $db;
-    $stmt = $db->prepare("SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? GROUP BY u.userid");
+    $stmt = $db->prepare("SELECT u.*, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? GROUP BY u.userid");
     $stmt->execute([$doctorid]);
     $result = $stmt->get_result();
     $data = [];
@@ -48,7 +48,7 @@ function getPatients($doctorid) {
 
 function getPatientByName($doctorid, $patientname) {
     global $db;
-    $stmt = $db->prepare("SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? AND (u.firstname LIKE ? OR u.lastname LIKE ?) GROUP BY u.userid");
+    $stmt = $db->prepare("SELECT u.*, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? AND (u.firstname LIKE ? OR u.lastname LIKE ?) GROUP BY u.userid");
     $stmt->execute([$doctorid, "%".$patientname."%", "%".$patientname."%"]);
     $result = $stmt->get_result();
     $data = [];
@@ -70,17 +70,6 @@ function getPatientById($patientid) {
     return $data;
 }
 
-function getAllPatients() {
-    global $db;
-    $stmt = $db->prepare("SELECT userid, firstname, lastname, email, contactnum FROM user WHERE role = 'patient'");
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $data = [];
-    while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
-    }
-    return $data;
-}
 
 function addPatient($patientData) {
     global $db;
@@ -93,7 +82,7 @@ function addPatient($patientData) {
     }
     
     // Insert new patient
-    $stmt = $db->prepare("INSERT INTO user (firstname, lastname, email, contactnum, password, role) VALUES (?, ?, ?, ?, ?, 'patient')");
+    $stmt = $db->prepare("INSERT INTO user (firstname, lastname, email, contactnum, birthdate, gender, password, role) VALUES (?, ?, ?, ?, ?, ?, ?, 'ptnt')");
     
     // Generate a simple default password
     $defaultPassword = "Patient123";
@@ -103,6 +92,8 @@ function addPatient($patientData) {
         $patientData['lastname'],
         $patientData['email'],
         $patientData['contactnum'],
+        $patientData['birthdate'],
+        $patientData['gender'],
         $defaultPassword
     ]);
     
