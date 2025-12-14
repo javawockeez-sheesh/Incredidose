@@ -213,7 +213,7 @@ switch ($action) {
 
     case "getPatientById":
         // Check authentication - doctor, pharmacist, admin can access
-        if (!isAuthenticated() || !hasRequiredRole(['doctor', 'pharmacist', 'admin'])) {
+        if (!isAuthenticated() || !hasRequiredRole(['pcr', 'pharmacist', 'admin'])) {
             http_response_code(401);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please login first.']);

@@ -17,7 +17,29 @@ function generateToken($length = 32) {
 function loginUser($email, $password) {
     global $db;
     
-    $stmt = $db->prepare("SELECT userid, firstname, lastname, email, role, password FROM user WHERE email = ?");
+    $stmt = $db->prepare("SELECT 
+        u.userid, 
+        u.firstname, 
+        u.lastname, 
+        u.email, 
+        CASE 
+            WHEN u.role = 'pcr' THEN 
+                CASE 
+                    WHEN p.type = 'doctor' THEN 'doctor'
+                    WHEN p.type = 'pharmacist' THEN 'pharmacist'
+                    ELSE 'pcr' -- fallback if type is missing or unexpected
+                END
+            ELSE u.role
+        END AS role,
+        u.password 
+        FROM 
+            user u
+        LEFT JOIN 
+            practitioner p ON u.userid = p.userid
+        WHERE 
+            u.email = ?"
+    );
+
     if (!$stmt) return ['success' => false, 'error' => $db->error];
     
     $stmt->execute([$email]);
@@ -105,7 +127,6 @@ switch ($action) {
         break;
 
     case 'session':
-        // Return current session data if logged in
         header('Content-Type: application/json');
         if (isset($_SESSION['userid'])) {
             echo json_encode([
