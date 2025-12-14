@@ -46,6 +46,16 @@ function getPatients($doctorid) {
     return $data;
 }
 
+function getAllPatients() {
+    global $db;
+    $result = $db->query("SELECT * FROM user");
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+    return $data;
+} 
+
 function getPatientByName($doctorid, $patientname) {
     global $db;
     $stmt = $db->prepare("SELECT u.*, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? AND (u.firstname LIKE ? OR u.lastname LIKE ?) GROUP BY u.userid");

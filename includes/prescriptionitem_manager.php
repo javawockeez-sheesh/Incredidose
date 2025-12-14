@@ -25,6 +25,22 @@ function isDoctor() {
     return $row['type'] === 'doctor';
 }
 
+function isPharmacist() {
+    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
+        return false;
+    }
+    
+    // Check if user is practitioner and type is doctor
+    global $db;
+    $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
+    $stmt->execute([$_SESSION['userid']]);
+    $result = $stmt->get_result();
+    if ($result->num_rows === 0) return false;
+    
+    $row = $result->fetch_assoc();
+    return $row['type'] === 'pharmacist';
+}
+
 // Check if doctor owns this prescription
 function doctorOwnsPrescription($prescriptionid) {
     global $db;
@@ -40,7 +56,10 @@ function doctorOwnsPrescription($prescriptionid) {
 // Get prescription items
 function getPrescriptionItems($prescriptionid) { 
     global $db;
-    $stmt = $db->prepare("SELECT * FROM prescriptionitem WHERE prescriptionid = ?");
+    $stmt = $db->prepare("SELECT pi.*, GREATEST(0, pi.quantity - COALESCE((SELECT SUM(pui.quantity) FROM purchase pu JOIN purchaseitem pui 
+                                    ON pu.purchaseid = pui.purchaseid WHERE pu.prescriptionid = pi.prescriptionid AND 
+                                    pui.prescriptionitemid = pi.prescriptionitemid), 0)) as available FROM 
+                                    prescriptionitem pi WHERE pi.prescriptionid = ?");
     $stmt->execute([$prescriptionid]);
     $result = $stmt->get_result();
     $data = [];
@@ -92,7 +111,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // =============== DOCTOR-ONLY ACCESS CHECK ===============
 if ($action !== '') {
-    if (!isDoctor()) {
+    if (!isDoctor() && !isPharmacist()) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Access denied. Doctors only.']);
         exit();
@@ -108,7 +127,7 @@ if ($method === 'GET') {
                 break;
             }
             
-            if (!doctorOwnsPrescription($prescriptionid)) {
+            if (!doctorOwnsPrescription($prescriptionid) && !isPharmacist()) {
                 echo json_encode(['success' => false, 'error' => 'Not your prescription']);
                 break;
             }

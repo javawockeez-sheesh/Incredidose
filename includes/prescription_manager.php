@@ -43,8 +43,25 @@ function getPrescriptions($patientid) {
     return $data;
 }
 
+function getPrescriptionsPharmacist($patientid) {
+    global $db;
+    $stmt = $db->prepare("
+        SELECT DISTINCT prescription.*, user.email, user.contactnum 
+        FROM prescription 
+        INNER JOIN user ON prescription.patientid = user.userid 
+        WHERE patientid = ?
+    ");
+    $stmt->execute([$patientid]);
+    $result = $stmt->get_result();
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+    return $data;
+}
+
 // Add a new prescription
-function addPrescription($validperiod, $patientid, $doctorid) {
+function addPrescription($patientid, $doctorid) {
     global $db;
     
     // Make sure doctor is adding prescription for themselves
@@ -52,21 +69,14 @@ function addPrescription($validperiod, $patientid, $doctorid) {
         return ['error' => 'Cannot create prescription for another doctor'];
     }
     
-    $stmt = $db->prepare("INSERT INTO prescription (validperiod, patientid, doctorid) VALUES (?, ?, ?)");
-    $stmt->execute([$validperiod, $patientid, $doctorid]);
+    $stmt = $db->prepare("INSERT INTO prescription (patientid, doctorid) VALUES (?, ?)");
+    $stmt->execute([$patientid, $doctorid]);
     $id = $stmt->insert_id;
+
     return ["id" => $id];
 }
 
 $action = $_GET['action'] ?? '';
-
-// =============== DOCTOR-ONLY ACCESS CHECK ===============
-if ($action !== '') {
-    if (!isDoctor()) {
-        echo json_encode(['error' => 'Access denied. Doctors only.']);
-        exit();
-    }
-}
 
 switch ($action) {
     case "getPrescriptions":
@@ -79,17 +89,27 @@ switch ($action) {
         echo json_encode(getPrescriptions($patientid));
         break;
 
-    case "addPrescription":
-        $validperiod = $_GET['validperiod'] ?? '';
-        $doctorid = $_GET['doctorid'] ?? '';
+    //TINATAMAD AKONG AYUSING YUNG IBANG CODE KAYA GUMAWA NALANG AKO NG BAGO
+    case "getPrescriptionsPharmacist":
         $patientid = $_GET['patientid'] ?? '';
-        
-        if (empty($validperiod) || empty($doctorid) || empty($patientid)) {
-            echo json_encode(['error' => 'validperiod, doctorid, and patientid required']);
+        if (empty($patientid)) {
+            echo json_encode(['error' => 'patientid required']);
             break;
         }
         
-        echo json_encode(addPrescription($validperiod, $patientid, $doctorid));
+        echo json_encode(getPrescriptionsPharmacist($patientid));
+        break;
+
+    case "addPrescription":
+        $doctorid = $_GET['doctorid'] ?? '';
+        $patientid = $_GET['patientid'] ?? '';
+        
+        if (empty($doctorid) || empty($patientid)) {
+            echo json_encode(['error' => 'doctorid, and patientid required']);
+            break;
+        }
+        
+        echo json_encode(addPrescription($patientid, $doctorid));
         break;
         
     default:
