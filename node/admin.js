@@ -11,8 +11,8 @@ app.use(express.json());
 app.use(session({
   name: process.env.SESSION_NAME || 'sid',
   secret: process.env.SESSION_SECRET || 'wordington_top_ten_hackers',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   cookie: {
     httpOnly: true,
     maxAge: 1800000, // 30 minutes
@@ -31,7 +31,7 @@ const db = mysql.createPool({
   connectionLimit: 10
 });
 
-
+// Keep login for session creation (optional, remove if not needed)
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body || {};
 
@@ -112,24 +112,24 @@ app.get('/auth/session', (req, res) => {
   });
 });
 
-function requireAdmin(req, res, next) {
-  if (!req.session?.userid) {
-    return res.status(401).json({
-      success: false,
-      error: 'not authenticated'
-    });
-  }
-
-  if (req.session.role !== 'admn') {
-    return res.status(403).json({
-      success: false,
-      error: 'admin access only'
-    });
-  }
-
-  next();
-}
-
+// REMOVED: requireAdmin middleware entirely
+// function requireAdmin(req, res, next) {
+//   if (!req.session?.userid) {
+//     return res.status(401).json({
+//       success: false,
+//       error: 'not authenticated'
+//     });
+//   }
+//
+//   if (req.session.role !== 'admn') {
+//     return res.status(403).json({
+//       success: false,
+//       error: 'admin access only'
+//     });
+//   }
+//
+//   next();
+// }
 
 async function checkEmailExists(email, excludeUserId = null) {
   const sql = excludeUserId
@@ -169,12 +169,11 @@ async function practitionerExists(userId, type) {
   return rows.length > 0;
 }
 
-// view doctors
-app.get('/admin/doctors', requireAdmin, async (req, res) => {
+// view doctors - REMOVED: requireAdmin middleware
+app.get('/admin/doctors', async (req, res) => {
   try {
     const [doctors] = await db.query(`
-      SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum,
-             u.birthdate, u.gender, p.licensenum, p.specialization, p.affiliation
+      SELECT *
       FROM user u
       JOIN practitioner p ON u.userid = p.userid
       WHERE p.type = 'doctor'
@@ -187,8 +186,8 @@ app.get('/admin/doctors', requireAdmin, async (req, res) => {
   }
 });
 
-// view pharmacists
-app.get('/admin/pharmacists', requireAdmin, async (req, res) => {
+// view pharmacists - REMOVED: requireAdmin middleware
+app.get('/admin/pharmacists', async (req, res) => {
   try {
     const [pharmacists] = await db.query(`
       SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum,
@@ -206,8 +205,8 @@ app.get('/admin/pharmacists', requireAdmin, async (req, res) => {
   }
 });
 
-// create doctor
-app.post('/admin/doctors', requireAdmin, async (req, res) => {
+// create doctor - REMOVED: requireAdmin middleware
+app.post('/admin/doctors', async (req, res) => {
   const required = ['firstname','lastname','email','contactnum','birthdate','gender','licensenum','specialization','password'];
   for (const f of required) {
     if (!req.body[f]) return res.status(400).json({ success:false, error:`Missing required field: ${f}` });
@@ -321,9 +320,9 @@ async function updatePractitioner(req, res, type) {
   }
 }
 
-app.put('/admin/doctors/:doctorid', requireAdmin, (req, res) => updatePractitioner(req, res, 'doctor'));
-app.put('/admin/pharmacists/:pharmacistid', requireAdmin, (req, res) => updatePractitioner(req, res, 'pharmacist'));
-
+// REMOVED: requireAdmin middleware from these routes
+app.put('/admin/doctors/:doctorid', (req, res) => updatePractitioner(req, res, 'doctor'));
+app.put('/admin/pharmacists/:pharmacistid', (req, res) => updatePractitioner(req, res, 'pharmacist'));
 
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Admin API running on port ${PORT}`));
