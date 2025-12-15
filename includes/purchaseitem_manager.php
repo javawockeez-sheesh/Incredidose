@@ -1,5 +1,6 @@
 <?php
 include("db.php");
+require("log.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
@@ -179,8 +180,8 @@ switch ($action) {
         }
         
         header('Content-Type: application/json');
+        logAction('ADD_PURCHASE_ITEM', 'Added item to purchase ID: ' . $purchaseitemData['purchaseid'], 'purchaseitem', $purchaseItemId);
         echo json_encode(addPurchaseItem($data));
-           logAction('ADD_PURCHASE_ITEM', 'Added item to purchase ID: ' . $purchaseitemData['purchaseid'], 'purchaseitem', $purchaseItemId);
         break;
         
         

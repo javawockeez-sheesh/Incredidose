@@ -1,5 +1,6 @@
 <?php
 include("db.php");
+include("log.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
@@ -66,8 +67,6 @@ function addPrescription($patientid) {
     $stmt->execute([$patientid, $_SESSION['userid']]);
     $id = $stmt->insert_id;
 
-    logAction('ADD_PRESCRIPTION', 'Created prescription ID: ' . $id . ' for patient ID: ' . $patientid, 'prescription', $id);
-
     return ["id" => $id];
 }
 
@@ -85,15 +84,15 @@ switch ($action) {
         break;
 
     case "addPrescription":
-        $doctorid = $_POST['doctorid'] ?? '';
-        $patientid = $_POST['patientid'] ?? '';
+        $patientid = $_GET['patientid'] ?? '';
         
-        if (empty($doctorid) || empty($patientid)) {
+        if (empty($patientid)) {
             echo json_encode(['error' => 'doctorid, and patientid required']);
             break;
         }
         
-        echo json_encode(addPrescription($patientid, $doctorid));
+        logAction('ADD_PRESCRIPTION', 'Added prescription for patient ID: ' . $patientid, 'prescription', null);
+        echo json_encode(addPrescription($patientid));
         break;
         
     default:
