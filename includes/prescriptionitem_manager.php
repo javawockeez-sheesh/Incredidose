@@ -36,7 +36,7 @@ function getPrescriptionItems($prescriptionid) {
     $stmt = $db->prepare("SELECT pi.*, GREATEST(0, pi.quantity - COALESCE((SELECT SUM(pui.quantity) FROM purchase pu JOIN purchaseitem pui 
                                     ON pu.purchaseid = pui.purchaseid WHERE pu.prescriptionid = pi.prescriptionid AND 
                                     pui.prescriptionitemid = pi.prescriptionitemid), 0)) as available FROM 
-                                    prescriptionitem pi WHERE pi.prescriptionid = ?");
+                                    prescriptionitem pi WHERE pi.presAcriptionid = ?");
     $stmt->execute([$prescriptionid]);
     $result = $stmt->get_result();
     $data = [];

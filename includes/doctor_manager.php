@@ -22,4 +22,6 @@ function getAllDoctors() {
     }
     return $data;
 }
+
+echo json_encode(getAllDoctors());
 ?>
