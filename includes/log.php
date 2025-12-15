@@ -1,4 +1,5 @@
 <?php
+
 function logAction($action, $description, $targetEntityType, $targetId) {
     global $db;
     

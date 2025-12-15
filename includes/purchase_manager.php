@@ -1,6 +1,5 @@
 <?php
 include("db.php");
-include("log.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT");
@@ -144,13 +143,7 @@ switch ($action) {
         }
         
         header('Content-Type: application/json');
-        $result = createPurchase($data);
-
-        if (isset($result['success']) && $result['success'] === true) {
-            logAction('CREATE_PURCHASE', 'Created purchase ID: ' . $result['purchaseid'] . ' for patient ID: ' . $data['patientid'], 'purchase', $result['purchaseid']);
-        }
-        
-        echo json_encode($result);
+        echo json_encode(createPurchase($data));
         break;
     }
 ?>

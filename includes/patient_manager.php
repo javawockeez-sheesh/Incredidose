@@ -1,6 +1,5 @@
 <?php
 include("db.php");
-include("log.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT");
@@ -217,7 +216,6 @@ switch ($action) {
         }
         
         header('Content-Type: application/json');
-        logAction('ADD_PATIENT', 'Added patient with email: ' . $data['email'], 'patient', $newId);
         echo json_encode(addPatient($data));
         break;
         
@@ -269,7 +267,6 @@ switch ($action) {
         }
         
         header('Content-Type: application/json');
-        logAction('EDIT_PATIENT', 'Edited patient ID: ' . $patientid, 'patient', $patientid);
         echo json_encode(editPatient($patientid, $data));
         break;
         
