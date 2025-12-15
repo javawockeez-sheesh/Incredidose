@@ -127,7 +127,7 @@ app.post('/admin/doctors', async (req, res) => {
 });
 
 // update practitioner
-async function updatePractitioner(req, res, type) {
+async function updatePractitioner(req, res, type) { 
   const id = req.params[`${type}id`];
   if (!(await ensurePractitionerExists(id, type))) {
     return res.status(404).json({ success:false, error:`${type} not found` });

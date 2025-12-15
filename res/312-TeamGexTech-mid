@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 08, 2025 at 12:39 PM
+-- Generation Time: Dec 15, 2025 at 12:46 PM
 -- Server version: 9.1.0
--- PHP Version: 8.4.0
+-- PHP Version: 8.3.14
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `mydatabase`
+-- Database: `incredidose`
 --
 
 -- --------------------------------------------------------
@@ -87,7 +87,18 @@ CREATE TABLE IF NOT EXISTS `payment` (
   `purchaseid` int NOT NULL,
   PRIMARY KEY (`paymentid`),
   KEY `purchase` (`purchaseid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `payment`
+--
+
+INSERT INTO `payment` (`paymentid`, `amount`, `paymentdate`, `paymentmethod`, `status`, `purchaseid`) VALUES
+(19, 1200, '2025-02-14 03:02:55', 'Csh', 'Completed', 11),
+(20, 850, '2025-03-03 08:22:18', 'EWL', 'Completed', 12),
+(21, 1999, '2025-04-19 02:10:44', 'Csh', 'Pending', 13),
+(22, 500, '2025-06-07 07:03:27', 'EWL', 'Completed', 14),
+(23, 750, '2025-07-23 11:15:09', 'Csh', 'Completed', 15);
 
 -- --------------------------------------------------------
 
@@ -123,7 +134,10 @@ INSERT INTO `practitioner` (`userid`, `type`, `licensenum`, `specialization`, `a
 (51, 'doctor', 'MD-4900007', 'Neurology', 'University of the Philippines PGH'),
 (52, 'doctor', 'MD-4900008', 'Orthopedics', 'Manila Doctors Hospital'),
 (53, 'doctor', 'MD-4900009', 'Surgery', 'Cardinal Santos Medical Center'),
-(54, 'doctor', 'MD-4900010', 'Family Medicine', 'Feu-Nrmf Medical Center');
+(54, 'doctor', 'MD-4900010', 'Family Medicine', 'Feu-Nrmf Medical Center'),
+(55, 'doctor', 'DOC12345', 'Internal Medicine', 'St. Luke\'s'),
+(56, 'doctor', 'DOC6767', 'Internal Medicine', 'St. Luke\'s'),
+(57, 'doctor', 'DOC999', 'Cardiology', 'Ohio City Hospital');
 
 -- --------------------------------------------------------
 
@@ -239,7 +253,18 @@ CREATE TABLE IF NOT EXISTS `purchase` (
   `pharmacistid` int NOT NULL,
   `prescriptionid` int NOT NULL,
   PRIMARY KEY (`purchaseid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `purchase`
+--
+
+INSERT INTO `purchase` (`purchaseid`, `purchasetimestamp`, `patientid`, `pharmacistid`, `prescriptionid`) VALUES
+(11, '2025-02-14 02:32:11', 21, 45, 22),
+(12, '2025-03-03 08:08:47', 22, 46, 23),
+(13, '2025-04-19 01:55:02', 23, 47, 24),
+(14, '2025-06-07 06:21:39', 24, 48, 25),
+(15, '2025-07-23 10:44:55', 25, 45, 26);
 
 -- --------------------------------------------------------
 
@@ -271,7 +296,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `userid` int NOT NULL AUTO_INCREMENT,
   `firstname` varchar(35) NOT NULL,
   `lastname` varchar(35) NOT NULL,
-  `contactnum` int NOT NULL,
+  `contactnum` varchar(20) NOT NULL,
   `email` varchar(35) NOT NULL,
   `password` varchar(255) NOT NULL,
   `birthdate` datetime NOT NULL,
@@ -279,47 +304,50 @@ CREATE TABLE IF NOT EXISTS `user` (
   `role` enum('pcr','admn','ptnt') NOT NULL,
   `gender` varchar(11) NOT NULL,
   PRIMARY KEY (`userid`)
-) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `user`
 --
 
 INSERT INTO `user` (`userid`, `firstname`, `lastname`, `contactnum`, `email`, `password`, `birthdate`, `createdat`, `role`, `gender`) VALUES
-(21, 'Juan', 'Cruz', 2147483647, 'juan.cruz@gmail.com', 'Juan123', '1998-03-12 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(22, 'Maria', 'Santos', 2147483647, 'maria.santos@yahoo.com', 'Maria123', '1995-07-09 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(23, 'Alex', 'Reyes', 2147483647, 'alex.reyes@gmail.com', 'Alex123', '1993-11-21 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(24, 'Sophia', 'Lopez', 2147483647, 'sophia.lopez@yahoo.com', 'Sophia123', '1997-02-10 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(25, 'Daniel', 'Garcia', 2147483647, 'daniel.garcia@gmail.com', 'Daniel123', '1992-09-25 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(26, 'Emily', 'Torres', 2147483647, 'emily.torres@hotmail.com', 'Emily123', '1999-05-15 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(27, 'Michael', 'Tan', 2147483647, 'michael.tan@gmail.com', 'Michael123', '1991-08-19 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(28, 'Hannah', 'Flores', 2147483647, 'hannah.flores@yahoo.com', 'Hannah123', '1996-12-01 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(29, 'Joshua', 'Ramos', 2147483647, 'joshua.ramos@gmail.com', 'Joshua123', '1994-06-23 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(30, 'Angelica', 'Bautista', 2147483647, 'angelica.bautista@yahoo.com', 'Angelica123', '1998-04-11 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(31, 'Patrick', 'Castro', 2147483647, 'patrick.castro@gmail.com', 'Patrick123', '1997-03-08 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(32, 'Christine', 'Navarro', 2147483647, 'christine.navarro@hotmail.com', 'Christine123', '1995-10-17 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(33, 'Ryan', 'Lim', 2147483647, 'ryan.lim@gmail.com', 'Ryan123', '1990-01-28 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(34, 'Isabella', 'Mendoza', 2147483647, 'isabella.mendoza@yahoo.com', 'Isabella123', '1999-07-13 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(35, 'Nathan', 'Villanueva', 2147483647, 'nathan.villanueva@gmail.com', 'Nathan123', '1992-02-02 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(36, 'Alyssa', 'Rivera', 2147483647, 'alyssa.rivera@gmail.com', 'Alyssa123', '1993-10-20 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(37, 'Jacob', 'Santiago', 2147483647, 'jacob.santiago@yahoo.com', 'Jacob123', '1996-05-09 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(38, 'Ella', 'Diaz', 2147483647, 'ella.diaz@gmail.com', 'Ella123', '1994-09-18 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(39, 'Gabriel', 'Morales', 2147483647, 'gabriel.morales@gmail.com', 'Gabriel123', '1991-12-22 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
-(40, 'Nicole', 'Fernandez', 2147483647, 'nicole.fernandez@yahoo.com', 'Nicole123', '1997-11-30 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
-(41, 'Drake', 'Mitchell', 2147483647, 'drake.mitchell@gmail.com', 'Drake123', '1985-03-19 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
-(42, 'Olivia', 'Johnson', 2147483647, 'olivia.johnson@gmail.com', 'Olivia123', '1988-06-25 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
-(43, 'Ethan', 'Parker', 2147483647, 'ethan.parker@yahoo.com', 'Ethan123', '1983-12-04 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
-(44, 'Chloe', 'Anderson', 2147483647, 'chloe.anderson@gmail.com', 'Chloe123', '1989-09-17 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
-(45, 'Lucas', 'Thompson', 2147483647, 'lucas.thompson@gmail.com', 'Lucas123', '1986-04-07 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
-(46, 'Mia', 'White', 2147483647, 'mia.white@yahoo.com', 'Mia123', '1990-08-14 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
-(47, 'Noah', 'Hall', 2147483647, 'noah.hall@gmail.com', 'Noah123', '1987-10-29 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
-(48, 'Grace', 'Clark', 2147483647, 'grace.clark@hotmail.com', 'Grace123', '1991-11-06 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
-(49, 'Henry', 'Lewis', 2147483647, 'henry.lewis@gmail.com', 'Henry123', '1984-02-23 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
-(50, 'Zoe', 'Scott', 2147483647, 'zoe.scott@gmail.com', 'Zoe123', '1992-01-03 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
-(51, 'Admin', 'Delos Santos', 2147483647, 'admin1@incredidose.com', 'Admin123', '1980-05-01 00:00:00', '2025-10-30 15:53:04', 'admn', 'Male'),
-(52, 'Carla', 'Hernandez', 2147483647, 'carla.hernandez@incredidose.com', 'Carla123', '1983-07-12 00:00:00', '2025-10-30 15:53:04', 'admn', 'Female'),
-(53, 'Rafael', 'Torralba', 2147483647, 'rafael.torralba@incredidose.com', 'Rafael123', '1978-09-27 00:00:00', '2025-10-30 15:53:04', 'admn', 'Male'),
-(54, 'Bea', 'Domingo', 2147483647, 'bea.domingo@incredidose.com', 'Bea123', '1985-11-18 00:00:00', '2025-10-30 15:53:04', 'admn', 'Female');
+(21, 'Juan', 'Cruz', '2147483647', 'juan.cruz@gmail.com', 'Juan123', '1998-03-12 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(22, 'Maria', 'Santos', '2147483647', 'maria.santos@yahoo.com', 'Maria123', '1995-07-09 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(23, 'Alex', 'Reyes', '2147483647', 'alex.reyes@gmail.com', 'Alex123', '1993-11-21 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(24, 'Sophia', 'Lopez', '2147483647', 'sophia.lopez@yahoo.com', 'Sophia123', '1997-02-10 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(25, 'Daniel', 'Garcia', '2147483647', 'daniel.garcia@gmail.com', 'Daniel123', '1992-09-25 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(26, 'Emily', 'Torres', '2147483647', 'emily.torres@hotmail.com', 'Emily123', '1999-05-15 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(27, 'Michael', 'Tan', '2147483647', 'michael.tan@gmail.com', 'Michael123', '1991-08-19 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(28, 'Hannah', 'Flores', '2147483647', 'hannah.flores@yahoo.com', 'Hannah123', '1996-12-01 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(29, 'Joshua', 'Ramos', '2147483647', 'joshua.ramos@gmail.com', 'Joshua123', '1994-06-23 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(30, 'Angelica', 'Bautista', '2147483647', 'angelica.bautista@yahoo.com', 'Angelica123', '1998-04-11 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(31, 'Patrick', 'Castro', '2147483647', 'patrick.castro@gmail.com', 'Patrick123', '1997-03-08 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(32, 'Christine', 'Navarro', '2147483647', 'christine.navarro@hotmail.com', 'Christine123', '1995-10-17 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(33, 'Ryan', 'Lim', '2147483647', 'ryan.lim@gmail.com', 'Ryan123', '1990-01-28 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(34, 'Isabella', 'Mendoza', '2147483647', 'isabella.mendoza@yahoo.com', 'Isabella123', '1999-07-13 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(35, 'Nathan', 'Villanueva', '2147483647', 'nathan.villanueva@gmail.com', 'Nathan123', '1992-02-02 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(36, 'Alyssa', 'Rivera', '2147483647', 'alyssa.rivera@gmail.com', 'Alyssa123', '1993-10-20 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(37, 'Jacob', 'Santiago', '2147483647', 'jacob.santiago@yahoo.com', 'Jacob123', '1996-05-09 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(38, 'Ella', 'Diaz', '2147483647', 'ella.diaz@gmail.com', 'Ella123', '1994-09-18 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(39, 'Gabriel', 'Morales', '2147483647', 'gabriel.morales@gmail.com', 'Gabriel123', '1991-12-22 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Male'),
+(40, 'Nicole', 'Fernandez', '2147483647', 'nicole.fernandez@yahoo.com', 'Nicole123', '1997-11-30 00:00:00', '2025-10-30 15:53:04', 'ptnt', 'Female'),
+(41, 'Drake', 'Mitchell', '2147483647', 'drake.mitchell@gmail.com', 'Drake123', '1985-03-19 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
+(42, 'Olivia', 'Johnson', '2147483647', 'olivia.johnson@gmail.com', 'Olivia123', '1988-06-25 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
+(43, 'Ethan', 'Parker', '2147483647', 'ethan.parker@yahoo.com', 'Ethan123', '1983-12-04 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
+(44, 'Chloe', 'Anderson', '2147483647', 'chloe.anderson@gmail.com', 'Chloe123', '1989-09-17 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
+(45, 'Lucas', 'Thompson', '2147483647', 'lucas.thompson@gmail.com', 'Lucas123', '1986-04-07 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
+(46, 'Mia', 'White', '2147483647', 'mia.white@yahoo.com', 'Mia123', '1990-08-14 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
+(47, 'Noah', 'Hall', '2147483647', 'noah.hall@gmail.com', 'Noah123', '1987-10-29 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
+(48, 'Grace', 'Clark', '2147483647', 'grace.clark@hotmail.com', 'Grace123', '1991-11-06 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
+(49, 'Henry', 'Lewis', '2147483647', 'henry.lewis@gmail.com', 'Henry123', '1984-02-23 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Male'),
+(50, 'Zoe', 'Scott', '2147483647', 'zoe.scott@gmail.com', 'Zoe123', '1992-01-03 00:00:00', '2025-10-30 15:53:04', 'pcr', 'Female'),
+(51, 'Admin', 'Delos Santos', '2147483647', 'admin1@incredidose.com', 'Admin123', '1980-05-01 00:00:00', '2025-10-30 15:53:04', 'admn', 'Male'),
+(52, 'Carla', 'Hernandez', '2147483647', 'carla.hernandez@incredidose.com', 'Carla123', '1983-07-12 00:00:00', '2025-10-30 15:53:04', 'admn', 'Female'),
+(53, 'Rafael', 'Torralba', '2147483647', 'rafael.torralba@incredidose.com', 'Rafael123', '1978-09-27 00:00:00', '2025-10-30 15:53:04', 'admn', 'Male'),
+(54, 'Bea', 'Domingo', '2147483647', 'bea.domingo@incredidose.com', 'Bea123', '1985-11-18 00:00:00', '2025-10-30 15:53:04', 'admn', 'Female'),
+(55, 'Juan', 'Dela Cruz', '2147483647', 'juan.delacruz@test.com', 'password123', '1988-06-20 00:00:00', '2025-12-15 19:21:46', 'pcr', 'Male'),
+(56, 'Killua', 'Zoldyck', '2147483647', 'killua.zoldyck@test.com', 'password123', '1988-07-20 00:00:00', '2025-12-15 19:22:37', 'pcr', 'Male'),
+(57, 'World', 'Against', '09452210957', 'World.gg@email.com', 'password6767', '2000-05-15 00:00:00', '2025-12-15 20:32:29', 'pcr', 'Male');
 
 --
 -- Constraints for dumped tables
