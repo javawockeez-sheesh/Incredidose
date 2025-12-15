@@ -7,22 +7,17 @@ header("Content-Type: application/json");
 
 session_start();
 
-//Validate if the user is a doctor
 function isDoctor() {
-    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
-        return false;
-    }
-    
-    global $db;
-    $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
-    $stmt->execute([$_SESSION['userid']]);
-    $result = $stmt->get_result();
-    if ($result->num_rows === 0) return false;
-    
-    $row = $result->fetch_assoc();
-    return $row['type'] === 'doctor';
+    return $_SESSION['role'] == 'doctor';
 }
 
+function isAdmin() {
+    return $_SESSION['role'] == 'admn';
+}
+
+function isPatient(){
+    return $_SESSION['role'] == 'ptnt'; 
+}
 
 function doctorOwnsPrescription($prescriptionid) {
     global $db;
@@ -71,16 +66,17 @@ if ($method === 'GET') {
                 break;
             }
             
-            
             echo json_encode(getPrescriptionItems($prescriptionid));
             break;
             
         default:
+
             echo json_encode(['success' => false, 'error' => 'Invalid action']);
             break;
     }
 }
 elseif ($method === 'POST') {
+
     $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
     
     switch ($action) {
@@ -93,31 +89,35 @@ elseif ($method === 'POST') {
             $frequency = $input['frequency'] ?? '';
             $description = $input['description'] ?? '';
             $substitutions = $input['substitutions'] ?? '';
+
+            if(!isDoctor()){
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
+                break;
+            }
             
             if (!doctorOwnsPrescription($prescriptionid)) {
-                echo json_encode(['success' => false, 'error' => 'only doctors can add prescriptions']);
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
                 break;
             }
 
             if (empty($prescriptionid) || empty($name)) {
-                echo json_encode(['success' => false, 'error' => 'prescriptionid and name required']);
-                break;
-            }
-            
-            if (!doctorOwnsPrescription($prescriptionid)) {
-                echo json_encode(['success' => false, 'error' => 'Not your prescription']);
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Incomplete form fields.']);
                 break;
             }
 
             $newId = addPrescriptionItem($prescriptionid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions);
             echo json_encode(['success' => true, 'prescriptionitem_id' => $newId]);
             break;
-
-        default:
-            echo json_encode(['success' => false, 'error' => 'Invalid action']);
-            break;
     }
 } else {
-    echo json_encode(['success' => false, 'error' => 'Invalid method']);
+    http_response_code(401);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
 }
 ?>

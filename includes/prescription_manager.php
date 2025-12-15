@@ -9,32 +9,10 @@ header("Content-Type: application/json");
 session_start();
 
 function isDoctor() {
-    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
-        return false;
-    }
-    
-    global $db;
-    $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
-    $stmt->execute([$_SESSION['userid']]);
-    $result = $stmt->get_result();
-    if ($result->num_rows === 0) return false;
-    
-    $row = $result->fetch_assoc();
-    return $row['type'] === 'doctor';
+    return $_SESSION['role'] == 'doctor';
 }
 
 function isPatient() {
-    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
-        return false;
-    }
-    
-    global $db;
-    $stmt = $db->prepare("SELECT role FROM user WHERE userid = ?");
-    $stmt->execute([$_SESSION['userid']]);
-    $result = $stmt->get_result();
-    if ($result->num_rows === 0) return false;
-    
-    $row = $result->fetch_assoc();
     return $row['role'] === 'ptnt';
 }
 

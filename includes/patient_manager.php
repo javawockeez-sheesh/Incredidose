@@ -10,18 +10,15 @@ session_start();
 
 //Validate if user is a doctor
 function isDoctor() {
-    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
-        return false;
-    }
-    
-    global $db;
-    $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
-    $stmt->execute([$_SESSION['userid']]);
-    $result = $stmt->get_result();
-    if ($result->num_rows === 0) return false;
-    
-    $row = $result->fetch_assoc();
-    return $row['type'] === 'doctor';
+    return $_SESSION['role'] == 'doctor';
+}
+
+function isAdmin() {
+    return $_SESSION['role'] == 'admn';
+}
+
+function isPatient(){
+    return $_SESSION['role'] == 'ptnt'; 
 }
 
 function getPatients() {
@@ -137,7 +134,7 @@ switch ($action) {
         if(!isDoctor()){
             http_response_code(401);
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please login first.']);
+            echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
             break;
         }
         
@@ -145,23 +142,28 @@ switch ($action) {
         echo json_encode(getPatients());
         break;
         
-    case "getAllPatients":  
+    case "getAllPatients":
+        
+        if(isDoctor() || isPatient()){
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
+            break;
+        }
+
         header('Content-Type: application/json');
         echo json_encode(getAllPatients());
         break;
         
     case "addPatient":
+        
         if (!isDoctor()) {
-            http_response_code(403);
+            http_response_code(401);
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false, 
-                'error' => 'Access denied. Only doctors can add patients.'
-            ]);
+            echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
             break;
         }
         
-        // Get POST data
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -170,8 +172,7 @@ switch ($action) {
             echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST']);
             break;
         }
-        
-        // Validate required fields
+
         $requiredFields = ['firstname', 'lastname', 'email', 'contactnum'];
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
@@ -182,7 +183,6 @@ switch ($action) {
             }
         }
         
-        // Validate email format
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             http_response_code(400);
             header('Content-Type: application/json');

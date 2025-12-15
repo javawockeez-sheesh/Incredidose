@@ -9,25 +9,22 @@ header("Access-Control-Allow-Credentials: true");
 session_start();
 
 //Validate if the user is a doctor
-function isPharmacist() {
-    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
-        return false;
-    }
-    
-    global $db;
-    $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
-    $stmt->execute([$_SESSION['userid']]);
-    $result = $stmt->get_result();
-    if ($result->num_rows === 0) return false;
-    
-    $row = $result->fetch_assoc();
-    return $row['type'] === 'pharmacist';
+function isDoctor() {
+    return $_SESSION['role'] == 'doctor';
+}
+
+function isAdmin() {
+    return $_SESSION['role'] == 'admn';
+}
+
+function isPatient(){
+    return $_SESSION['role'] == 'ptnt'; 
 }
 
 function getPurchasesByPrescription($prescriptionid) {
     global $db;
     $stmt = $db->prepare("
-        SELECT *, uniFROM purchase p
+        SELECT * FROM purchase p
             INNER JOIN purchaseitem i ON p.purchaseid = i.purchaseid 
             INNER JOIN prescriptionitem pi ON i.prescriptionitemid = pi.prescriptionitemid
             WHERE p.prescriptionid = ?
@@ -44,16 +41,17 @@ function getPurchasesByPrescription($prescriptionid) {
 
 function createPurchase($purchaseData) {
     global $db;
-    
 
     if (empty($purchaseData['patientid']) || empty($purchaseData['prescriptionid'])) {
         return ['success' => false, 'error' => 'Patient ID and Prescription ID are required'];
     }
+
     $prescriptionCheck = $db->prepare("
         SELECT prescriptionid
         FROM prescription 
         WHERE prescriptionid = ? AND patientid = ?
     ");
+
     $prescriptionCheck->execute([$purchaseData['prescriptionid'], $purchaseData['patientid']]);
     $prescription = $prescriptionCheck->get_result()->fetch_assoc();
     
@@ -113,17 +111,19 @@ switch ($action) {
         
     case "createPurchase":
 
+        if(!isPharmacist()){
+            http_response_code(405);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Unauthorized Access']);
+            break;
+        }
+
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST']);
-            break;
-        }
-
-        if(!isPharmacist()){
-            echo json_encode(['success' => false, 'error' => 'only pharmacists can create purchases']);
             break;
         }
         

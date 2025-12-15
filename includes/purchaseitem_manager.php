@@ -8,53 +8,18 @@ header("Access-Control-Allow-Credentials: true");
 
 session_start();
 
-// =============== AUTHENTICATION FUNCTIONS ===============
-function isAuthenticated() {
-    return isset($_SESSION['userid']) && isset($_SESSION['role']) && isset($_SESSION['email']);
+function isDoctor() {
+    return $_SESSION['role'] == 'doctor';
 }
 
-function hasRequiredRole($requiredRoles) {
-    if (!isAuthenticated()) {
-        return false;
-    }
-    
-    if (!is_array($requiredRoles)) {
-        $requiredRoles = [$requiredRoles];
-    }
-    
-    return in_array($_SESSION['role'], $requiredRoles);
+function isAdmin() {
+    return $_SESSION['role'] == 'admn';
 }
 
-// Check if user is pharmacist (type = 'pharmacist' in practitioner table)
-function isPharmacist() {
-    if (!isAuthenticated() || $_SESSION['role'] !== 'pharmacist') {
-        return false;
-    }
-    
-    // Check practitioner type if not already in session
-    if (!isset($_SESSION['practitioner_type'])) {
-        global $db;
-        $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
-        $stmt->execute([$_SESSION['userid']]);
-        $result = $stmt->get_result();
-        if ($result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-            $_SESSION['practitioner_type'] = $row['type'];
-        } else {
-            return false;
-        }
-    }
-    
-    return $_SESSION['practitioner_type'] === 'pharmacist';
+function isPatient(){
+    return $_SESSION['role'] == 'ptnt'; 
 }
 
-function isAdminOnly() {
-    return isAuthenticated() && $_SESSION['role'] === 'admn';
-}
-
-// =============== PURCHASE ITEM FUNCTIONS ===============
-
-// Get all purchase items for a purchase
 function getPurchaseItemsByPurchase($purchaseid) {
     global $db;
     $stmt = $db->prepare("
@@ -79,11 +44,9 @@ function getPurchaseItemsByPurchase($purchaseid) {
     return $data;
 }
 
-// Add purchase item to a purchase
 function addPurchaseItem($purchaseitemData) {
     global $db;
     
-    // Validate required fields
     $requiredFields = ['purchaseid', 'prescriptionitemid', 'unitprice', 'quantity'];
     foreach ($requiredFields as $field) {
         if (!isset($purchaseitemData[$field]) || $purchaseitemData[$field] === '') {
@@ -91,7 +54,6 @@ function addPurchaseItem($purchaseitemData) {
         }
     }
     
-    // Check if purchase exists and get pharmacist ID
     $purchaseCheck = $db->prepare("SELECT purchaseid, pharmacistid FROM purchase WHERE purchaseid = ?");
     $purchaseCheck->execute([$purchaseitemData['purchaseid']]);
     $purchase = $purchaseCheck->get_result()->fetch_assoc();
@@ -100,12 +62,10 @@ function addPurchaseItem($purchaseitemData) {
         return ['success' => false, 'error' => 'Purchase not found'];
     }
     
-    // Check if current user is the pharmacist who created this purchase
     if ($purchase['pharmacistid'] != $_SESSION['userid']) {
         return ['success' => false, 'error' => 'You can only add items to your own purchases'];
     }
     
-    // Check if prescription item exists
     $prescriptionItemCheck = $db->prepare("
         SELECT prescriptionitemid, quantity as max_quantity 
         FROM prescriptionitem 
@@ -118,26 +78,23 @@ function addPurchaseItem($purchaseitemData) {
         return ['success' => false, 'error' => 'Prescription item not found'];
     }
     
-    // Check if quantity exceeds prescribed quantity
     if ($purchaseitemData['quantity'] > $prescriptionItem['max_quantity']) {
         return ['success' => false, 'error' => 'Quantity exceeds prescribed amount'];
     }
     
-    // Calculate total price
     $totalprice = $purchaseitemData['unitprice'] * $purchaseitemData['quantity'];
     
-    // Check if this prescription item is already in the purchase
     $existingCheck = $db->prepare("
         SELECT purchaseitemid 
         FROM purchaseitem 
         WHERE purchaseid = ? AND prescriptionitemid = ?
     ");
+
     $existingCheck->execute([$purchaseitemData['purchaseid'], $purchaseitemData['prescriptionitemid']]);
     if ($existingCheck->get_result()->num_rows > 0) {
         return ['success' => false, 'error' => 'This medication is already in the purchase'];
     }
     
-    // Insert purchase item
     $stmt = $db->prepare("
         INSERT INTO purchaseitem (purchaseid, unitprice, quantity, totalprice, prescriptionitemid) 
         VALUES (?, ?, ?, ?, ?)
@@ -165,11 +122,8 @@ function addPurchaseItem($purchaseitemData) {
     return ['success' => false, 'error' => 'Failed to add purchase item'];
 }
 
-// =============== REQUEST HANDLING ===============
-
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-// Helper function to get JSON body
 function getJsonBody() {
     $input = file_get_contents('php://input');
     if (!$input) return [];
@@ -179,14 +133,6 @@ function getJsonBody() {
 
 switch ($action) {
     case "getPurchaseItemsByPurchase":
-        // Check authentication - pharmacist, admin, and patient can access
-        if (!isAuthenticated()) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please login first.']);
-            break;
-        }
-        
         if (!isset($_GET['purchaseid'])) {
             http_response_code(400);
             header('Content-Type: application/json');
@@ -197,9 +143,7 @@ switch ($action) {
         $purchaseid = $_GET['purchaseid'];
         $items = getPurchaseItemsByPurchase($purchaseid);
         
-        // Check if user has permission to view these items
-        if ($_SESSION['role'] === 'ptnt' && $_SESSION['userid'] != $purchase['patientid'] && 
-            !hasRequiredRole(['pcr', 'admn'])) {
+        if (isPatient() && $_SESSION['userid'] != $purchase['patientid']) {
             http_response_code(403);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Access denied']);
@@ -213,7 +157,13 @@ switch ($action) {
         
     case "addPurchaseItem":
 
-        // Get POST data
+        if(!isPharmacist){
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Access denied']);
+            break;
+        }
+
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
