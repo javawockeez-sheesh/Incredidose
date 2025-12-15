@@ -33,6 +33,18 @@ function getPatients() {
     return $data;
 }
 
+function getPatientByEmail($email) {
+    global $db;
+    $stmt = $db->prepare("SELECT * FROM user WHERE user.email = ?");
+    $stmt->execute([$email]);
+    $result = $stmt->get_result();
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+    return $data;
+}
+
 function getAllPatients() {
     global $db;
     $result = $db->query("SELECT * FROM user");
@@ -141,7 +153,20 @@ switch ($action) {
         header('Content-Type: application/json');
         echo json_encode(getPatients());
         break;
-        
+    
+    case "getPatientByEmail":
+
+        if (!filter_var($_GET['email'], FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Invalid email format']);
+            break;
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode(getPatientByEmail($_GET['email']));
+        break;
+
     case "getAllPatients":
         
         if(isDoctor() || isPatient()){
