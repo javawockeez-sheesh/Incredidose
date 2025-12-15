@@ -1,5 +1,6 @@
 <?php
 include("db.php");
+include("log.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
@@ -90,6 +91,7 @@ switch ($action) {
             break;
         }
         
+        logAction('ADD_PRESCRIPTION', 'Added prescription for patient ID: ' . $patientid, 'prescription', null);
         echo json_encode(addPrescription($patientid));
         break;
         

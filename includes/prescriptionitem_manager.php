@@ -1,5 +1,6 @@
 <?php
 include("db.php");
+include("log.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
@@ -112,6 +113,7 @@ elseif ($method === 'POST') {
             }
 
             $newId = addPrescriptionItem($prescriptionid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions);
+            logAction('ADD_PRESCRIPTION_ITEM', 'Added prescription item ID: ' . $newId . ' to prescription ID: ' . $prescriptionid, 'prescriptionitem', $newId);
             echo json_encode(['success' => true, 'prescriptionitem_id' => $newId]);
             break;
     }

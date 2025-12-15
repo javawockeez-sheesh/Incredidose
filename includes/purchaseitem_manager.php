@@ -180,6 +180,7 @@ switch ($action) {
         }
         
         header('Content-Type: application/json');
+        logAction('ADD_PURCHASE_ITEM', 'Added item to purchase ID: ' . $purchaseitemData['purchaseid'], 'purchaseitem', $purchaseItemId);
         echo json_encode(addPurchaseItem($data));
         break;
         
