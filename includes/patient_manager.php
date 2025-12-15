@@ -83,6 +83,15 @@ function addPatient($patientData) {
     
     if ($stmt->affected_rows > 0) {
         $patientId = $db->insert_id;
+        $logStmt = $db->prepare("INSERT INTO log (action, description, timestamp, targetentitytype, targetid, userid) VALUES (?, ?, NOW(), ?, ?, ?)");
+        $logStmt->execute([
+            'ADD_PATIENT',
+            'Added patient: ' . $patientData['firstname'] . ' ' . $patientData['lastname'] . ' (ID: ' . $patientId . ')',
+            'patient',
+            $patientId,
+            $_SESSION['userid']
+        ]);
+        
         return [
             'success' => true,
             'message' => 'Patient added successfully',
@@ -121,6 +130,15 @@ function editPatient($patientid, $patientData) {
     ]);
     
     if ($stmt->affected_rows > 0) {
+        $logStmt = $db->prepare("INSERT INTO log (action, description, timestamp, targetentitytype, targetid, userid) VALUES (?, ?, NOW(), ?, ?, ?)");
+        $logStmt->execute([
+            'EDIT_PATIENT',
+            'Edited patient: ' . $patientData['firstname'] . ' ' . $patientData['lastname'] . ' (ID: ' . $patientid . ')',
+            'patient',
+            $patientid,
+            $_SESSION['userid']
+        ]); 
+        
         return [
             'success' => true,
             'message' => 'Patient updated successfully'
