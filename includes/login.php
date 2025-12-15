@@ -8,8 +8,6 @@ header("Access-Control-Allow-Headers: Content-Type, X-Amz-Date, Authorization, X
 
 session_start();
 
-
-
 function generateToken($length = 32) {
     return bin2hex(random_bytes($length / 2));
 }
@@ -27,7 +25,6 @@ function loginUser($email, $password) {
                 CASE 
                     WHEN p.type = 'doctor' THEN 'doctor'
                     WHEN p.type = 'pharmacist' THEN 'pharmacist'
-                    ELSE 'pcr' -- fallback if type is missing or unexpected
                 END
             ELSE u.role
         END AS role,

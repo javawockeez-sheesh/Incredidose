@@ -8,13 +8,11 @@ header("Content-Type: application/json");
 // Start session
 session_start();
 
-// Check if user is doctor
 function isDoctor() {
     if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
         return false;
     }
     
-    // Check if user is practitioner and type is doctor
     global $db;
     $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
     $stmt->execute([$_SESSION['userid']]);
@@ -25,33 +23,41 @@ function isDoctor() {
     return $row['type'] === 'doctor';
 }
 
-// Get prescriptions for a patient (doctor can view patients they prescribed to)
+function isPatient() {
+    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
+        return false;
+    }
+    
+    global $db;
+    $stmt = $db->prepare("SELECT role FROM user WHERE userid = ?");
+    $stmt->execute([$_SESSION['userid']]);
+    $result = $stmt->get_result();
+    if ($result->num_rows === 0) return false;
+    
+    $row = $result->fetch_assoc();
+    return $row['role'] === 'ptnt';
+}
+
 function getPrescriptions($patientid) {
     global $db;
-    $stmt = $db->prepare("
+    $stmt = $db->prepare((isDoctor()) ? 
+    //Query if doctor
+    "
         SELECT DISTINCT prescription.*, user.email, user.contactnum 
         FROM prescription 
         INNER JOIN user ON prescription.patientid = user.userid 
         WHERE patientid = ? AND doctorid = ?
-    ");
-    $stmt->execute([$patientid, $_SESSION['userid']]);
-    $result = $stmt->get_result();
-    $data = [];
-    while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
-    }
-    return $data;
-}
-
-function getPrescriptionsPharmacist($patientid) {
-    global $db;
-    $stmt = $db->prepare("
+    "
+    : //Query if other user roles
+    "   
         SELECT DISTINCT prescription.*, user.email, user.contactnum 
         FROM prescription 
         INNER JOIN user ON prescription.patientid = user.userid 
         WHERE patientid = ?
-    ");
-    $stmt->execute([$patientid]);
+    "
+    );
+
+    (isDoctor()) ? $stmt->execute([$patientid, $_SESSION['userid']]) : $stmt->execute([$_SESSION['userid']]);
     $result = $stmt->get_result();
     $data = [];
     while ($row = $result->fetch_assoc()) {
@@ -61,16 +67,15 @@ function getPrescriptionsPharmacist($patientid) {
 }
 
 // Add a new prescription
-function addPrescription($patientid, $doctorid) {
+function addPrescription($patientid) {
     global $db;
     
-    // Make sure doctor is adding prescription for themselves
-    if ($doctorid != $_SESSION['userid']) {
-        return ['error' => 'Cannot create prescription for another doctor'];
+    if (!isDoctor()) {
+        return ['error' => 'Only doctors can create prescriptions'];
     }
     
     $stmt = $db->prepare("INSERT INTO prescription (patientid, doctorid) VALUES (?, ?)");
-    $stmt->execute([$patientid, $doctorid]);
+    $stmt->execute([$patientid, $_SESSION['userid']]);
     $id = $stmt->insert_id;
 
     return ["id" => $id];
@@ -87,17 +92,6 @@ switch ($action) {
         }
         
         echo json_encode(getPrescriptions($patientid));
-        break;
-
-    //TINATAMAD AKONG AYUSING YUNG IBANG CODE KAYA GUMAWA NALANG AKO NG BAGO
-    case "getPrescriptionsPharmacist":
-        $patientid = $_GET['patientid'] ?? '';
-        if (empty($patientid)) {
-            echo json_encode(['error' => 'patientid required']);
-            break;
-        }
-        
-        echo json_encode(getPrescriptionsPharmacist($patientid));
         break;
 
     case "addPrescription":

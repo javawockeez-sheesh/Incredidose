@@ -4,40 +4,30 @@ include("db.php");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT");
 header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Credentials: true"); // Added for session support
+header("Access-Control-Allow-Credentials: true");
 
-// Start session for authentication (MUST match your login.php)
 session_start();
 
-// =============== AUTHENTICATION FUNCTIONS ===============
-// These match your login.php session structure
-
-function isAuthenticated() {
-    return isset($_SESSION['userid']) && isset($_SESSION['role']) && isset($_SESSION['email']);
-}
-
-function hasRequiredRole($requiredRoles) {
-    if (!isAuthenticated()) {
+//Validate if user is a doctor
+function isDoctor() {
+    if (!isset($_SESSION['userid']) || !isset($_SESSION['role'])) {
         return false;
     }
     
-    if (!is_array($requiredRoles)) {
-        $requiredRoles = [$requiredRoles];
-    }
+    global $db;
+    $stmt = $db->prepare("SELECT type FROM practitioner WHERE userid = ?");
+    $stmt->execute([$_SESSION['userid']]);
+    $result = $stmt->get_result();
+    if ($result->num_rows === 0) return false;
     
-    return in_array($_SESSION['role'], $requiredRoles);
+    $row = $result->fetch_assoc();
+    return $row['type'] === 'doctor';
 }
 
-function isDoctorOnly() {
-    return isAuthenticated() && $_SESSION['role'] === 'doctor';
-}
-
-// =============== PATIENT FUNCTIONS ===============
-
-function getPatients($doctorid) {
+function getPatients() {
     global $db;
     $stmt = $db->prepare("SELECT u.*, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? GROUP BY u.userid");
-    $stmt->execute([$doctorid]);
+    $stmt->execute([$_SESSION['userid']]);
     $result = $stmt->get_result();
     $data = [];
     while ($row = $result->fetch_assoc()) {
@@ -55,31 +45,6 @@ function getAllPatients() {
     }
     return $data;
 } 
-
-function getPatientByName($doctorid, $patientname) {
-    global $db;
-    $stmt = $db->prepare("SELECT u.*, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? AND (u.firstname LIKE ? OR u.lastname LIKE ?) GROUP BY u.userid");
-    $stmt->execute([$doctorid, "%".$patientname."%", "%".$patientname."%"]);
-    $result = $stmt->get_result();
-    $data = [];
-    while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
-    }
-    return $data;
-}
-
-function getPatientById($patientid) {
-    global $db;
-    $stmt = $db->prepare("SELECT * from User where userid = ?");
-    $stmt->execute([$patientid]);
-    $result = $stmt->get_result();
-    $data = [];
-    while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
-    }
-    return $data;
-}
-
 
 function addPatient($patientData) {
     global $db;
@@ -154,13 +119,11 @@ function editPatient($patientid, $patientData) {
     }
     
     return ['success' => false, 'error' => 'No changes made or failed to update patient'];
-}
 
-// =============== REQUEST HANDLING ===============
+}
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-// Helper function to get JSON body
 function getJsonBody() {
     $input = file_get_contents('php://input');
     if (!$input) return [];
@@ -170,85 +133,25 @@ function getJsonBody() {
 
 switch ($action) {
     case "getPatients":
-        // Check authentication - doctor, pharmacist, admin can access
-        if (!isAuthenticated() || !hasRequiredRole(['doctor', 'pharmacist', 'admin'])) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please login first.']);
-            break;
-        }
-        
-        if (!isset($_GET['doctorid'])) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'doctorid parameter is required']);
-            break;
-        }
-        
-        $doctorid = $_GET['doctorid'];
-        header('Content-Type: application/json');
-        echo json_encode(getPatients($doctorid));
-        break;
 
-    case "getPatientByName":
-        // Check authentication - doctor, pharmacist, admin can access
-        if (!isAuthenticated() || !hasRequiredRole(['doctor', 'pharmacist', 'admin'])) {
+        if(!isDoctor()){
             http_response_code(401);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please login first.']);
             break;
         }
         
-        if (!isset($_GET['doctorid']) || !isset($_GET['patientname'])) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'doctorid and patientname parameters are required']);
-            break;
-        }
-        
-        $doctorid = $_GET['doctorid'];
-        $patientname = $_GET['patientname'];
         header('Content-Type: application/json');
-        echo json_encode(getPatientByName($doctorid, $patientname));
-        break;
-
-    case "getPatientById":
-        // Check authentication - doctor, pharmacist, admin can access
-        if (!isAuthenticated() || !hasRequiredRole(['pcr', 'pharmacist', 'admin'])) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please login first.']);
-            break;
-        }
-        
-        if (!isset($_GET['patientid'])) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'patientid parameter is required']);
-            break;
-        }
-        
-        $patientid = $_GET['patientid'];
-        header('Content-Type: application/json');
-        echo json_encode(getPatientById($patientid));
+        echo json_encode(getPatients());
         break;
         
-    case "getAllPatients":
-        // Check authentication - doctor, pharmacist, admin can access
-        if (!isAuthenticated() || !hasRequiredRole(['doctor', 'pharmacist', 'admin'])) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please login first.']);
-            break;
-        }
-        
+    case "getAllPatients":  
         header('Content-Type: application/json');
         echo json_encode(getAllPatients());
         break;
         
     case "addPatient":
-        // EXCLUSIVE: Only doctors can add patients
-        if (!isDoctorOnly()) {
+        if (!isDoctor()) {
             http_response_code(403);
             header('Content-Type: application/json');
             echo json_encode([
@@ -292,8 +195,8 @@ switch ($action) {
         break;
         
     case "editPatient":
-        // EXCLUSIVE: Only doctors can edit patients
-        if (!isDoctorOnly()) {
+
+        if (!isDoctor()) {
             http_response_code(403);
             header('Content-Type: application/json');
             echo json_encode([
@@ -303,7 +206,6 @@ switch ($action) {
             break;
         }
         
-        // Get PUT/POST data
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'PUT' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -322,7 +224,6 @@ switch ($action) {
             break;
         }
         
-        // Validate required fields
         $requiredFields = ['firstname', 'lastname', 'email', 'contactnum'];
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
@@ -333,7 +234,6 @@ switch ($action) {
             }
         }
         
-        // Validate email format
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             http_response_code(400);
             header('Content-Type: application/json');
