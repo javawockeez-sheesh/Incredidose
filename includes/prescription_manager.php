@@ -66,6 +66,8 @@ function addPrescription($patientid) {
     $stmt->execute([$patientid, $_SESSION['userid']]);
     $id = $stmt->insert_id;
 
+    logAction('ADD_PRESCRIPTION', 'Created prescription ID: ' . $id . ' for patient ID: ' . $patientid, 'prescription', $id);
+
     return ["id" => $id];
 }
 
@@ -83,8 +85,8 @@ switch ($action) {
         break;
 
     case "addPrescription":
-        $doctorid = $_GET['doctorid'] ?? '';
-        $patientid = $_GET['patientid'] ?? '';
+        $doctorid = $_POST['doctorid'] ?? '';
+        $patientid = $_POST['patientid'] ?? '';
         
         if (empty($doctorid) || empty($patientid)) {
             echo json_encode(['error' => 'doctorid, and patientid required']);
