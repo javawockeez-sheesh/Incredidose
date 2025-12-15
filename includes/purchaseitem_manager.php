@@ -20,6 +20,11 @@ function isPatient(){
     return $_SESSION['role'] == 'ptnt'; 
 }
 
+function isPharmacist(){
+    return $_SESSION['role'] == 'pharmacist'; 
+}
+
+
 function getPurchaseItemsByPurchase($purchaseid) {
     global $db;
     $stmt = $db->prepare("
@@ -157,7 +162,7 @@ switch ($action) {
         
     case "addPurchaseItem":
 
-        if(!isPharmacist){
+        if(!isPharmacist()){
             http_response_code(403);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Access denied']);

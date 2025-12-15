@@ -13,7 +13,15 @@ function isDoctor() {
 }
 
 function isPatient() {
-    return $row['role'] === 'ptnt';
+    return $_SESSION['role'] === 'ptnt';
+}
+
+function isPharmacist() {
+    return $_SESSION['role'] === 'pharmacist';
+}
+
+function isAdmin() {
+    return $_SESSION['role'] === 'admn';
 }
 
 function getPrescriptions($patientid) {
@@ -21,21 +29,23 @@ function getPrescriptions($patientid) {
     $stmt = $db->prepare((isDoctor()) ? 
     //Query if doctor
     "
-        SELECT DISTINCT prescription.*, user.email, user.contactnum 
+        SELECT DISTINCT prescription.*, user.firstname, user.lastname
         FROM prescription 
-        INNER JOIN user ON prescription.patientid = user.userid 
+        INNER JOIN user ON prescription.doctorid = user.userid 
         WHERE patientid = ? AND doctorid = ?
     "
     : //Query if other user roles
     "   
-        SELECT DISTINCT prescription.*, user.email, user.contactnum 
+        SELECT DISTINCT prescription.*, user.firstname, user.lastname
         FROM prescription 
-        INNER JOIN user ON prescription.patientid = user.userid 
+        INNER JOIN user ON prescription.doctorid = user.userid 
         WHERE patientid = ?
     "
     );
 
-    (isDoctor()) ? $stmt->execute([$patientid, $_SESSION['userid']]) : $stmt->execute([$_SESSION['userid']]);
+    $id = (isPharmacist() || isAdmin()) ? $patientid : $_SESSION['userid'];
+
+    (isDoctor()) ? $stmt->execute([$patientid, $_SESSION['userid']]) : $stmt->execute([$id]);
     $result = $stmt->get_result();
     $data = [];
     while ($row = $result->fetch_assoc()) {
@@ -64,7 +74,7 @@ $action = $_GET['action'] ?? '';
 switch ($action) {
     case "getPrescriptions":
         $patientid = $_GET['patientid'] ?? '';
-        if (empty($patientid)) {
+        if (empty($patientid) && isDoctor()) {
             echo json_encode(['error' => 'patientid required']);
             break;
         }

@@ -21,6 +21,10 @@ function isPatient(){
     return $_SESSION['role'] == 'ptnt'; 
 }
 
+function isPharmacist(){
+    return $_SESSION['role'] == 'pharmacist'; 
+}
+
 function getPurchasesByPrescription($prescriptionid) {
     global $db;
     $stmt = $db->prepare("
