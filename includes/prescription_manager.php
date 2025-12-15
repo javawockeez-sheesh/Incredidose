@@ -66,6 +66,15 @@ function addPrescription($patientid) {
     $stmt->execute([$patientid, $_SESSION['userid']]);
     $id = $stmt->insert_id;
 
+    $logStmt = $db->prepare("INSERT INTO log (action, description, timestamp, targetentitytype, targetid, userid) VALUES (?, ?, NOW(), ?, ?, ?)");
+    $logStmt->execute([
+        'ADD_PRESCRIPTION',
+        'Added prescription ID: ' . $id . ' for patient ID: ' . $patientid,
+        'prescription',
+        $id,
+        $_SESSION['userid']
+    ]);
+
     return ["id" => $id];
 }
 

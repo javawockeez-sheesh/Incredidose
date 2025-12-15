@@ -115,6 +115,14 @@ function addPurchaseItem($purchaseitemData) {
     
     if ($stmt->affected_rows > 0) {
         $purchaseItemId = $db->insert_id;
+        $logStmt = $db->prepare("INSERT INTO log (action, description, timestamp, targetentitytype, targetid, userid) VALUES (?, ?, NOW(), ?, ?, ?)");
+        $logStmt->execute([
+            'ADD_PURCHASE_ITEM',
+            'Added purchase item ID: ' . $purchaseItemId . ' to purchase ID: ' . $purchaseitemData['purchaseid'],
+            'purchaseitem',
+            $purchaseItemId,
+            $_SESSION['userid']
+        ]);
         
         return [
             'success' => true,

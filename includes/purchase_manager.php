@@ -78,6 +78,15 @@ function createPurchase($purchaseData) {
     
     if ($stmt->affected_rows > 0) {
         $purchaseId = $db->insert_id;
+        $logStmt = $db->prepare("INSERT INTO log (action, description, timestamp, targetentitytype, targetid, userid) VALUES (?, ?, NOW(), ?, ?, ?)");
+        $logStmt->execute([
+            'CREATE_PURCHASE',
+            'Created purchase ID: ' . $purchaseId . ' for prescription ID: ' . $purchaseData['prescriptionid'],
+            'purchase',
+            $purchaseId,
+            $_SESSION['userid']
+        ]);
+        
         return [
             'success' => true,
             'message' => 'Purchase created successfully',

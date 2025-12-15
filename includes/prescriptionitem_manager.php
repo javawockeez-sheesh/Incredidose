@@ -50,6 +50,14 @@ function addPrescriptionItem($prescriptionid, $name, $brand, $quantity, $dosage,
     global $db;
     $stmt = $db->prepare("INSERT INTO prescriptionitem (prescriptionid, name, brand, quantity, dosage, frequency, description, substitutions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->execute([$prescriptionid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions]);
+    $logStmt = $db->prepare("INSERT INTO log (action, description, timestamp, targetentitytype, targetid, userid) VALUES (?, ?, NOW(), ?, ?, ?)");
+    $logStmt->execute([ 
+        'ADD_PRESCRIPTION_ITEM',
+        'Added prescription item: ' . $name . ' to prescription ID: ' . $prescriptionid,
+        'prescriptionitem',
+        $stmt->insert_id,
+        $_SESSION['userid']
+    ]);
     return $stmt->insert_id;
 }
 
