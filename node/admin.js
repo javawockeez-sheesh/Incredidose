@@ -1,10 +1,25 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
+const session = require('express-session');
 
 const app = express();
-app.use(cors());
+
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+
+app.use(session({
+  name: process.env.SESSION_NAME || 'sid',
+  secret: process.env.SESSION_SECRET || 'wordington_top_ten_hackers',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    maxAge: 1800000, // 30 minutes
+    secure: false, 
+    sameSite: 'lax'
+  }
+}));
 
 const db = mysql.createPool({
   host: 'localhost',
@@ -15,6 +30,106 @@ const db = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10
 });
+
+
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body || {};
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      error: 'email and password required'
+    });
+  }
+
+  try {
+    const [rows] = await db.query(
+      'SELECT userid, firstname, lastname, email, role, password FROM user WHERE email = ?',
+      [email]
+    );
+
+    if (!rows.length || rows[0].password !== password) {
+      return res.status(401).json({
+        success: false,
+        error: 'invalid email or password'
+      });
+    }
+
+    const user = rows[0];
+
+    req.session.userid = user.userid;
+    req.session.firstname = user.firstname;
+    req.session.lastname = user.lastname;
+    req.session.email = user.email;
+    req.session.role = user.role;
+
+    res.json({
+      success: true,
+      userid: user.userid,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      email: user.email,
+      role: user.role
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      error: 'database error'
+    });
+  }
+});
+
+app.post('/auth/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        error: 'logout failed'
+      });
+    }
+    res.clearCookie(process.env.SESSION_NAME || 'sid');
+    res.json({ success: true });
+  });
+});
+
+app.get('/auth/session', (req, res) => {
+  if (!req.session?.userid) {
+    return res.status(401).json({
+      success: false,
+      error: 'not authenticated'
+    });
+  }
+
+  res.json({
+    success: true,
+    userid: req.session.userid,
+    firstname: req.session.firstname,
+    lastname: req.session.lastname,
+    email: req.session.email,
+    role: req.session.role
+  });
+});
+
+function requireAdmin(req, res, next) {
+  if (!req.session?.userid) {
+    return res.status(401).json({
+      success: false,
+      error: 'not authenticated'
+    });
+  }
+
+  if (req.session.role !== 'admn') {
+    return res.status(403).json({
+      success: false,
+      error: 'admin access only'
+    });
+  }
+
+  next();
+}
+
 
 async function checkEmailExists(email, excludeUserId = null) {
   const sql = excludeUserId
@@ -46,7 +161,7 @@ function buildUpdate(fields, data) {
   return { cols, values };
 }
 
-async function ensurePractitionerExists(userId, type) {
+async function practitionerExists(userId, type) {
   const [rows] = await db.query(
     `SELECT u.userid FROM user u JOIN practitioner p ON u.userid = p.userid WHERE p.type = ? AND u.userid = ?`,
     [type, userId]
@@ -55,7 +170,7 @@ async function ensurePractitionerExists(userId, type) {
 }
 
 // view doctors
-app.get('/admin/doctors', async (req, res) => {
+app.get('/admin/doctors', requireAdmin, async (req, res) => {
   try {
     const [doctors] = await db.query(`
       SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum,
@@ -72,8 +187,27 @@ app.get('/admin/doctors', async (req, res) => {
   }
 });
 
+// view pharmacists
+app.get('/admin/pharmacists', requireAdmin, async (req, res) => {
+  try {
+    const [pharmacists] = await db.query(`
+      SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum,
+             u.birthdate, u.gender, p.licensenum, p.specialization, p.affiliation
+      FROM user u
+      JOIN practitioner p ON u.userid = p.userid
+      WHERE p.type = 'pharmacist'
+      ORDER BY u.lastname, u.firstname
+    `);
+
+    res.json({ success: true, pharmacists });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Database error' });
+  }
+});
+
 // create doctor
-app.post('/admin/doctors', async (req, res) => {
+app.post('/admin/doctors', requireAdmin, async (req, res) => {
   const required = ['firstname','lastname','email','contactnum','birthdate','gender','licensenum','specialization','password'];
   for (const f of required) {
     if (!req.body[f]) return res.status(400).json({ success:false, error:`Missing required field: ${f}` });
@@ -129,7 +263,9 @@ app.post('/admin/doctors', async (req, res) => {
 // update practitioner
 async function updatePractitioner(req, res, type) { 
   const id = req.params[`${type}id`];
-  if (!(await ensurePractitionerExists(id, type))) {
+
+  
+  if (!(await practitionerExists(id, type))) {
     return res.status(404).json({ success:false, error:`${type} not found` });
   }
 
@@ -138,17 +274,15 @@ async function updatePractitioner(req, res, type) {
     await conn.beginTransaction();
 
     if (req.body.email && await checkEmailExists(req.body.email, id)) {
-      throw { status:400, msg:'Email already in use by another user' };
+      throw { status: 400, msg: 'Email already in use by another user' };
     }
-
     if (req.body.licensenum && await checkLicenseExists(req.body.licensenum, id)) {
-      throw { status:400, msg:'License number already in use' };
+      throw { status: 400, msg: 'License number already in use' };
     }
 
-    const userUpdate = buildUpdate(
-      ['firstname','lastname','email','contactnum','birthdate','gender','password'],
-      req.body
-    );
+    
+    const userFields = ['firstname','lastname','email','contactnum','birthdate','gender','password'];
+    const userUpdate = buildUpdate(userFields, req.body);
 
     if (userUpdate.cols.length) {
       await conn.query(
@@ -157,10 +291,7 @@ async function updatePractitioner(req, res, type) {
       );
     }
 
-    const practitionerFields = type === 'doctor'
-      ? ['licensenum','specialization','affiliation']
-      : ['licensenum','pharmacy_name','pharmacy_address'];
-
+    const practitionerFields = ['licensenum','specialization','affiliation'];
     const practitionerUpdate = buildUpdate(practitionerFields, req.body);
 
     if (practitionerUpdate.cols.length) {
@@ -180,34 +311,19 @@ async function updatePractitioner(req, res, type) {
         practitioner: practitionerUpdate.cols.map(c => c.split(' = ')[0])
       }
     });
+
   } catch (err) {
     await conn.rollback();
-    res.status(err.status || 500).json({ success:false, error: err.msg || 'Database error' });
+    console.error(err);
+    res.status(err.status || 500).json({ success: false, error: err.msg || 'Database error' });
   } finally {
     conn.release();
   }
 }
 
-app.put('/admin/doctors/:doctorid', (req, res) => updatePractitioner(req, res, 'doctor'));
-app.put('/admin/pharmacists/:pharmacistid', (req, res) => updatePractitioner(req, res, 'pharmacist'));
+app.put('/admin/doctors/:doctorid', requireAdmin, (req, res) => updatePractitioner(req, res, 'doctor'));
+app.put('/admin/pharmacists/:pharmacistid', requireAdmin, (req, res) => updatePractitioner(req, res, 'pharmacist'));
 
-// view pharmacists
-app.get('/admin/pharmacists', async (req, res) => {
-  try {
-    const [pharmacists] = await db.query(`
-      SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum,
-             u.birthdate, u.gender, p.licensenum, p.pharmacy_name, p.pharmacy_address
-      FROM user u
-      JOIN practitioner p ON u.userid = p.userid
-      WHERE p.type = 'pharmacist'
-      ORDER BY u.lastname, u.firstname
-    `);
-
-    res.json({ success: true, pharmacists });
-  } catch (err) {
-    res.status(500).json({ success:false, error:'Database error' });
-  }
-});
 
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Admin API running on port ${PORT}`));
