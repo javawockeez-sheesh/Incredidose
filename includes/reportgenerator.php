@@ -8,7 +8,7 @@ use Dompdf\Options;
 
 
 session_start();
-
+    
 
 function generatePatientReport() {
     global $db;

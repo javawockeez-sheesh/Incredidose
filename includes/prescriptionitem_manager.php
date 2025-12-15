@@ -113,7 +113,6 @@ elseif ($method === 'POST') {
 
             $newId = addPrescriptionItem($prescriptionid, $name, $brand, $quantity, $dosage, $frequency, $description, $substitutions);
             echo json_encode(['success' => true, 'prescriptionitem_id' => $newId]);
-            logAction('ADD_PRESCRIPTION_ITEM', 'Added item to prescription ID: ' . $prescriptionid, 'prescriptionitem', $newId);
             break;
     }
 } else {
