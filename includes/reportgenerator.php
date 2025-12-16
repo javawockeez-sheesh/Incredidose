@@ -24,12 +24,10 @@ function generatePatientReport() {
     
     // Get prescriptions for this patient
     $stmt = $db->prepare("
-        SELECT p.*, u.firstname as doctor_firstname, u.lastname as doctor_lastname 
+        SELECT p.*, d.firstname as doctor_firstname, d.lastname as doctor_lastname
         FROM prescription p
-        INNER JOIN practitioner pr ON p.doctorid = pr.userid
-        INNER JOIN user u ON pr.userid = u.userid
+        JOIN user d ON p.doctorid = d.userid
         WHERE p.patientid = ?
-        ORDER BY p.dateprescribed DESC
     ");
     $stmt->execute([$patientid]);
     $prescriptions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -72,6 +70,7 @@ function generatePatientReport() {
     if (empty($prescriptions)) {
         $html .= '<p>No prescriptions found</p>';
     } else {
+
         foreach ($prescriptions as $prescription) {
             $html .= '
             <div style="margin-bottom: 30px;">

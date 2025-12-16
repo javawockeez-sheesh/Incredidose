@@ -43,6 +43,21 @@ function getPurchasesByPrescription($prescriptionid) {
     return $data;
 }
 
+function getPurchasesByPharmacist($pharmacistid) {
+    global $db;
+    $stmt = $db->prepare("
+        SELECT * FROM purchase WHERE pharmacistid = ?
+
+    ");
+    $stmt->execute([$pharmacistid]);
+    $result = $stmt->get_result();
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+    return $data;
+}
+
 function createPurchase($purchaseData) {
     global $db;
 
@@ -121,6 +136,20 @@ switch ($action) {
         header('Content-Type: application/json');
         echo json_encode(getPurchasesByPrescription($prescriptionid));
         break;
+
+    case "getPurchasesByPharmacist":
+        
+        if (!isset($_GET['pharmacistid'])) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'prescriptionid parameter is required']);
+            break;
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode(getPurchasesByPharmacist($_GET['pharmacistid']));
+        break;
+        
         
     case "createPurchase":
 

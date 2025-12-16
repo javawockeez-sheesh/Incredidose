@@ -117,7 +117,7 @@ function addPurchaseItem($purchaseitemData) {
         $purchaseItemId = $db->insert_id;
         $logStmt = $db->prepare("INSERT INTO log (action, description, timestamp, targetentitytype, targetid, userid) VALUES (?, ?, NOW(), ?, ?, ?)");
         $logStmt->execute([
-            'ADD_PURCHASE_ITEM',
+            'PHARMACY_DISPENSE',
             'Added purchase item ID: ' . $purchaseItemId . ' to purchase ID: ' . $purchaseitemData['purchaseid'],
             'purchaseitem',
             $purchaseItemId,

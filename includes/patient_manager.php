@@ -21,10 +21,12 @@ function isPatient(){
     return $_SESSION['role'] == 'ptnt'; 
 }
 
-function getPatients() {
+function getPatients($doctorid) {
+    $doctorid = (isAdmin()) ? $doctorid : $_SESSION['userid'];
+
     global $db;
     $stmt = $db->prepare("SELECT u.*, MAX(p.dateprescribed) AS dateprescribed FROM user u JOIN prescription p ON u.userid = p.patientid WHERE p.doctorid = ? GROUP BY u.userid");
-    $stmt->execute([$_SESSION['userid']]);
+    $stmt->execute([$doctorid]);
     $result = $stmt->get_result();
     $data = [];
     while ($row = $result->fetch_assoc()) {
@@ -161,7 +163,7 @@ function getJsonBody() {
 switch ($action) {
     case "getPatients":
 
-        if(!isDoctor()){
+        if(isPatient()){
             http_response_code(401);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
@@ -169,7 +171,7 @@ switch ($action) {
         }
         
         header('Content-Type: application/json');
-        echo json_encode(getPatients());
+        echo json_encode(getPatients($_GET['doctorid']));
         break;
     
     case "getPatientByEmail":

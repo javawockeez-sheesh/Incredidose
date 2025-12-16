@@ -112,25 +112,6 @@ app.get('/auth/session', (req, res) => {
   });
 });
 
-// REMOVED: requireAdmin middleware entirely
-// function requireAdmin(req, res, next) {
-//   if (!req.session?.userid) {
-//     return res.status(401).json({
-//       success: false,
-//       error: 'not authenticated'
-//     });
-//   }
-//
-//   if (req.session.role !== 'admn') {
-//     return res.status(403).json({
-//       success: false,
-//       error: 'admin access only'
-//     });
-//   }
-//
-//   next();
-// }
-
 async function checkEmailExists(email, excludeUserId = null) {
   const sql = excludeUserId
     ? 'SELECT userid FROM user WHERE email = ? AND userid != ?'
@@ -169,7 +150,7 @@ async function practitionerExists(userId, type) {
   return rows.length > 0;
 }
 
-// view doctors - REMOVED: requireAdmin middleware
+// view doctors
 app.get('/admin/doctors', async (req, res) => {
   try {
     const [doctors] = await db.query(`
@@ -186,12 +167,23 @@ app.get('/admin/doctors', async (req, res) => {
   }
 });
 
-// view pharmacists - REMOVED: requireAdmin middleware
+// view logs
+app.get('/admin/logs', async (req, res) => {
+  try {
+    const [logs] = await db.query(`
+      SELECT * FROM log
+    `);
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Database error' });
+  }
+});
+
+// view pharmacists
 app.get('/admin/pharmacists', async (req, res) => {
   try {
     const [pharmacists] = await db.query(`
-      SELECT u.userid, u.firstname, u.lastname, u.email, u.contactnum,
-             u.birthdate, u.gender, p.licensenum, p.specialization, p.affiliation
+      SELECT *
       FROM user u
       JOIN practitioner p ON u.userid = p.userid
       WHERE p.type = 'pharmacist'
@@ -202,10 +194,26 @@ app.get('/admin/pharmacists', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: 'Database error' });
-  }
+  } 
 });
 
-// create doctor - REMOVED: requireAdmin middleware
+app.get('/admin/pharmacists/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `
+      SELECT *
+      FROM purchase WHERE purchaseid = ?
+    `
+    const [purchases] = await db.query(query, [id]);
+
+    res.json({ success: true, pharmacists });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Database error' });
+  } 
+});
+
+// create doctor
 app.post('/admin/doctors', async (req, res) => {
   const required = ['firstname','lastname','email','contactnum','birthdate','gender','licensenum','specialization','password'];
   for (const f of required) {
@@ -259,7 +267,7 @@ app.post('/admin/doctors', async (req, res) => {
   }
 });
 
-// update practitioner
+
 async function updatePractitioner(req, res, type) { 
   const id = req.params[`${type}id`];
 
@@ -320,7 +328,7 @@ async function updatePractitioner(req, res, type) {
   }
 }
 
-// REMOVED: requireAdmin middleware from these routes
+
 app.put('/admin/doctors/:doctorid', (req, res) => updatePractitioner(req, res, 'doctor'));
 app.put('/admin/pharmacists/:pharmacistid', (req, res) => updatePractitioner(req, res, 'pharmacist'));
 
