@@ -1,11 +1,18 @@
 <?php
 include("db.php");
+include("error_handler.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Content-Type: application/json");
 
 session_start();
+
+//Check if user is logged in
+if (!isset($_SESSION['userid'])) {
+    sendError(401, "User not logged in.");
+    return;
+}
 
 function isDoctor() {
     return $_SESSION['role'] == 'doctor';
@@ -70,8 +77,7 @@ if ($method === 'GET') {
         case "getPrescriptionItems":
             $prescriptionid = $_GET['prescriptionid'] ?? '';
             if (empty($prescriptionid)) {
-                echo json_encode(['success' => false, 'error' => 'prescriptionid required']);
-                break;
+                sendError(400, "Prescription id is required");
             }
             
             echo json_encode(getPrescriptionItems($prescriptionid));
@@ -98,24 +104,13 @@ elseif ($method === 'POST') {
             $description = $input['description'] ?? '';
             $substitutions = $input['substitutions'] ?? '';
 
-            if(!isDoctor()){
-                http_response_code(401);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
-                break;
-            }
-            
-            if (!doctorOwnsPrescription($prescriptionid)) {
-                http_response_code(401);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
+            if(!isDoctor() || !doctorOwnsPrescription($prescriptionid)){
+                sendError(401, "Unauthorized Access");
                 break;
             }
 
             if (empty($prescriptionid) || empty($name)) {
-                http_response_code(401);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => 'Incomplete form fields.']);
+                sendError(400, "Missing field/s");
                 break;
             }
 
@@ -124,8 +119,6 @@ elseif ($method === 'POST') {
             break;
     }
 } else {
-    http_response_code(401);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
+    sendError(400, "Invalid action");
 }
 ?>

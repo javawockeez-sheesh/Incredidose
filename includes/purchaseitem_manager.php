@@ -1,5 +1,6 @@
 <?php
 include("db.php");
+include("error_handler.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
@@ -7,6 +8,13 @@ header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Credentials: true");
 
 session_start();
+
+
+if (!isset($_SESSION['userid'])) {
+    sendError(401, "User not logged in.");
+    return;
+}
+
 
 function isDoctor() {
     return $_SESSION['role'] == 'doctor';
@@ -147,9 +155,7 @@ function getJsonBody() {
 switch ($action) {
     case "getPurchaseItemsByPurchase":
         if (!isset($_GET['purchaseid'])) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'purchaseid parameter is required']);
+            sendError(400, "Purchase id is required");
             break;
         }
         
@@ -157,9 +163,7 @@ switch ($action) {
         $items = getPurchaseItemsByPurchase($purchaseid);
         
         if (isPatient() && $_SESSION['userid'] != $purchase['patientid']) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Access denied']);
+            sendError(401, "Unauthorized Access");
             break;
         }
         
@@ -171,18 +175,14 @@ switch ($action) {
     case "addPurchaseItem":
 
         if(!isPharmacist()){
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Access denied']);
+            sendError(401, "Unauthorized Access");
             break;
         }
 
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST']);
+            sendError(400, "Invalid Method");
             break;
         }
         
@@ -192,9 +192,7 @@ switch ($action) {
         
         
     default:
-        header('Content-Type: application/json');
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid action']);
+        sendError(400, "Invalid Action");
         break;
 }
 ?>

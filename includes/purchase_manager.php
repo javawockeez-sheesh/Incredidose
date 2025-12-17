@@ -1,5 +1,6 @@
 <?php
 include("db.php");
+include("error_handler.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT");
@@ -7,6 +8,11 @@ header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Credentials: true");
 
 session_start();
+
+if (!isset($_SESSION['userid'])) {
+    sendError(401, "User not logged in.");
+    return;
+}
 
 //Validate if the user is a doctor
 function isDoctor() {
@@ -61,9 +67,6 @@ function getPurchasesByPharmacist($pharmacistid) {
 function createPurchase($purchaseData) {
     global $db;
 
-    if (empty($purchaseData['patientid']) || empty($purchaseData['prescriptionid'])) {
-        return ['success' => false, 'error' => 'Patient ID and Prescription ID are required'];
-    }
 
     $prescriptionCheck = $db->prepare("
         SELECT prescriptionid
@@ -125,9 +128,7 @@ switch ($action) {
     case "getPurchasesByPrescription":
         
         if (!isset($_GET['prescriptionid'])) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'prescriptionid parameter is required']);
+            sendError(400, "Missing field/s");
             break;
         }
         
@@ -140,9 +141,7 @@ switch ($action) {
     case "getPurchasesByPharmacist":
         
         if (!isset($_GET['pharmacistid'])) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'prescriptionid parameter is required']);
+            sendError(400, "Pharmacist id is required");
             break;
         }
         
@@ -154,18 +153,14 @@ switch ($action) {
     case "createPurchase":
 
         if(!isPharmacist()){
-            http_response_code(405);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized Access']);
+            sendError(401, "Unauthorized Access");
             break;
         }
 
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST']);
+            sendError(400, "Invalid Action");
             break;
         }
         
@@ -173,9 +168,7 @@ switch ($action) {
 
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
-                http_response_code(400);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => "Missing required field: $field"]);
+                sendError(400, "Missing field/s");
                 break 2;
             }
         }

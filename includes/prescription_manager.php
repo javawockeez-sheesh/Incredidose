@@ -1,12 +1,19 @@
 <?php
 include("db.php");
-
+include("error_handler.php");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Content-Type: application/json");
 
+
 // Start session
 session_start();
+
+//Check if user is logged in
+if (!isset($_SESSION['userid'])) {
+    sendError(401, "User not logged in.");
+    return;
+}
 
 function isDoctor() {
     return $_SESSION['role'] == 'doctor';
@@ -58,10 +65,6 @@ function getPrescriptions($patientid) {
 function addPrescription($patientid) {
     global $db;
     
-    if (!isDoctor()) {
-        return ['error' => 'Only doctors can create prescriptions'];
-    }
-    
     $stmt = $db->prepare("INSERT INTO prescription (patientid, doctorid) VALUES (?, ?)");
     $stmt->execute([$patientid, $_SESSION['userid']]);
     $id = $stmt->insert_id;
@@ -84,7 +87,7 @@ switch ($action) {
     case "getPrescriptions":
         $patientid = $_GET['patientid'] ?? '';
         if (empty($patientid) && isDoctor()) {
-            echo json_encode(['error' => 'patientid required']);
+            sendError(401, "Unauthorized Access");
             break;
         }
         
@@ -95,7 +98,12 @@ switch ($action) {
         $patientid = $_GET['patientid'] ?? '';
         
         if (empty($patientid)) {
-            echo json_encode(['error' => 'doctorid, and patientid required']);
+            sendError(400, "Missing field/s");
+            break;
+        }
+
+        if (!isDoctor()) {
+            sendError(401, "Unauthorized Access");
             break;
         }
         
@@ -103,7 +111,7 @@ switch ($action) {
         break;
         
     default:
-        echo json_encode(['error' => 'Invalid action']);
+        sendError(400, "Invalid Action");
         break;
 }
 ?>

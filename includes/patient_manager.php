@@ -1,12 +1,20 @@
 <?php
 include("db.php");
+include("error_handler.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Credentials: true");
 
+
 session_start();
+
+//Check if user is logged in
+if (!isset($_SESSION['userid'])) {
+    sendError(404, "User not logged in.");
+    return;
+}
 
 //Validate if user is a doctor
 function isDoctor() {
@@ -164,9 +172,7 @@ switch ($action) {
     case "getPatients":
 
         if(isPatient()){
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
+            sendError(401, "Unauthorized Access");
             break;
         }
         
@@ -177,9 +183,7 @@ switch ($action) {
     case "getPatientByEmail":
 
         if (!filter_var($_GET['email'], FILTER_VALIDATE_EMAIL)) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Invalid email format']);
+            sendError(400, "Invalid email format");
             break;
         }
 
@@ -190,9 +194,7 @@ switch ($action) {
     case "getAllPatients":
         
         if(isDoctor() || isPatient()){
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
+            sendError(401, "Unauthorized Access");
             break;
         }
 
@@ -203,35 +205,28 @@ switch ($action) {
     case "addPatient":
         
         if (!isDoctor()) {
-            http_response_code(401);
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized access.']);
+            sendError(401, "Unauthorized Access");
             break;
         }
         
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST']);
+            sendError(403, "HTTP Method not Allowed");
             break;
         }
 
         $requiredFields = ['firstname', 'lastname', 'email', 'contactnum'];
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
-                http_response_code(400);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => "Missing required field: $field"]);
+                sendError(401, "Missing required field/s");
                 break 2;
             }
         }
         
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Invalid email format']);
+            sendError(400, "Invalid email format");
             break;
         }
         
@@ -242,47 +237,34 @@ switch ($action) {
     case "editPatient":
 
         if (!isDoctor()) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false, 
-                'error' => 'Access denied. Only doctors can edit patients.'
-            ]);
+            sendError(401, "Unauthorized Access");
             break;
         }
         
         $data = getJsonBody();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'PUT' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use PUT or POST']);
+            sendError(403, "HTTP Method not Allowed");
             break;
         }
         
         $patientid = isset($_GET['patientid']) ? $_GET['patientid'] : (isset($data['patientid']) ? $data['patientid'] : null);
         
         if (!$patientid) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Patient ID is required']);
+            sendError(400, "Patient id is required");
             break;
         }
         
         $requiredFields = ['firstname', 'lastname', 'email', 'contactnum'];
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
-                http_response_code(400);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => "Missing required field: $field"]);
+                sendError(400, "Missing field/s");
                 break 2;
             }
         }
         
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Invalid email format']);
+            sendError(400, "Invalid email format");
             break;
         }
         
@@ -292,7 +274,6 @@ switch ($action) {
         
     default:
         header('Content-Type: application/json');
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid action']);
+        sendError(400, "Invalid action");
         break;
 }

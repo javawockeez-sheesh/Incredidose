@@ -1,9 +1,17 @@
 <?php
 include("db.php");
+include("error_handler.php");
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Content-Type: application/json");
+
+session_start();
+//Check if user is logged in
+if (!isset($_SESSION['userid'])) {
+    sendError(401, "User not logged in.");
+    return;
+}
 
 function getAllDoctors() {
     global $db;

@@ -259,6 +259,7 @@ app.post('/admin/doctors', async (req, res) => {
         specialization: req.body.specialization
       }
     });
+    
   } catch (err) {
     await conn.rollback();
     res.status(err.status || 500).json({ success:false, error: err.msg || 'Database error' });
