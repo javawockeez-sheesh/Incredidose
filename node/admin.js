@@ -5,7 +5,9 @@ const session = require('express-session');
 
 const app = express();
 
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: true, credentials: true, methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'] }));
+
 app.use(express.json());
 
 app.use(session({
@@ -15,7 +17,7 @@ app.use(session({
   saveUninitialized: true,
   cookie: {
     httpOnly: true,
-    maxAge: 1800000, // 30 minutes
+    maxAge: 1800000,
     secure: false, 
     sameSite: 'lax'
   }
@@ -31,7 +33,44 @@ const db = mysql.createPool({
   connectionLimit: 10
 });
 
-// Keep login for session creation (optional, remove if not needed)
+const requireAuth = (req, res, next) => {
+  if (!req.session?.userid) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+  next();
+};
+
+const requireAdmin = (req, res, next) => {
+  if (!req.session?.userid) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+  
+  if (req.session?.role !== 'admn') {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin privileges required'
+    });
+  }
+  
+  next();
+};
+
+async function createLogs(req, action, description, targetentitytype, targetid){
+    const conn = await db.getConnection();
+
+    await conn.query(
+      `INSERT INTO log (action, description, targetentitytype, targetid, userid)
+       VALUES (?, ?, ?, ?, ?)`,
+      [action, description, targetentitytype, targetid, req.session.userid]
+    );
+}
+
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body || {};
 
@@ -80,6 +119,7 @@ app.post('/auth/login', async (req, res) => {
     });
   }
 });
+
 
 app.post('/auth/logout', (req, res) => {
   req.session.destroy(err => {
@@ -150,8 +190,7 @@ async function practitionerExists(userId, type) {
   return rows.length > 0;
 }
 
-// view doctors
-app.get('/admin/doctors', async (req, res) => {
+app.get('/admin/doctors', requireAuth, requireAdmin, async (req, res) => {
   try {
     const [doctors] = await db.query(`
       SELECT *
@@ -167,8 +206,8 @@ app.get('/admin/doctors', async (req, res) => {
   }
 });
 
-// view logs
-app.get('/admin/logs', async (req, res) => {
+// view logs - ADMIN ONLY
+app.get('/admin/logs', requireAuth, requireAdmin, async (req, res) => {
   try {
     const [logs] = await db.query(`
       SELECT * FROM log
@@ -179,8 +218,8 @@ app.get('/admin/logs', async (req, res) => {
   }
 });
 
-// view pharmacists
-app.get('/admin/pharmacists', async (req, res) => {
+// view pharmacists - ADMIN ONLY
+app.get('/admin/pharmacists', requireAuth, requireAdmin, async (req, res) => {
   try {
     const [pharmacists] = await db.query(`
       SELECT *
@@ -197,7 +236,8 @@ app.get('/admin/pharmacists', async (req, res) => {
   } 
 });
 
-app.get('/admin/pharmacists/:id', async (req, res) => {
+// view specific pharmacist - ADMIN ONLY
+app.get('/admin/pharmacists/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const query = `
@@ -213,8 +253,66 @@ app.get('/admin/pharmacists/:id', async (req, res) => {
   } 
 });
 
-// create doctor
-app.post('/admin/doctors', async (req, res) => {
+// create doctor - ADMIN ONLY
+app.post('/admin/doctors', requireAuth, requireAdmin, async (req, res) => {
+  const required = ['firstname','lastname','email','contactnum','birthdate','gender','licensenum','specialization','password'];
+  for (const f of required) {
+    if (!req.body[f]) return res.status(400).json({ success:false, error:`Missing required field: ${f}` });
+  }
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    if (await checkEmailExists(req.body.email)) {
+      throw { status:400, msg:'Email already exists' };
+    }
+
+    if (await checkLicenseExists(req.body.licensenum)) {
+      throw { status:400, msg:'License number already exists' };
+    }
+
+    const [userResult] = await conn.query(
+      `INSERT INTO user (firstname, lastname, email, contactnum, birthdate, gender, password, role)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pcr')`,
+      [req.body.firstname, req.body.lastname, req.body.email, req.body.contactnum,
+       req.body.birthdate, req.body.gender, req.body.password]
+    );
+
+    createLogs(req, 'CREATE_USER', `Created Doctor ${req.body.firstname + " " + req.body.lastname}`, 'doctor', userResult.insertId);
+
+    await conn.query(
+      `INSERT INTO practitioner (userid, type, licensenum, specialization, affiliation)
+       VALUES (?, 'doctor', ?, ?, ?)`,
+      [userResult.insertId, req.body.licensenum, req.body.specialization, req.body.affiliation || '']
+    );
+
+
+    await conn.commit();
+
+    res.status(201).json({
+      success: true,
+      message: 'Doctor created successfully',
+      doctor: {
+        userid: userResult.insertId,
+        firstname: req.body.firstname,
+        lastname: req.body.lastname,
+        email: req.body.email,
+        licensenum: req.body.licensenum,
+        specialization: req.body.specialization
+      }
+    });
+    
+  } catch (err) {
+    await conn.rollback();
+    res.status(err.status || 500).json({ success:false, error: err.msg || 'Database error' });
+  } finally {
+    conn.release();
+  }
+});
+
+// create pharmacists - ADMIN ONLY
+app.post('/admin/pharmacists', requireAuth, requireAdmin, async (req, res) => {
   const required = ['firstname','lastname','email','contactnum','birthdate','gender','licensenum','specialization','password'];
   for (const f of required) {
     if (!req.body[f]) return res.status(400).json({ success:false, error:`Missing required field: ${f}` });
@@ -241,9 +339,11 @@ app.post('/admin/doctors', async (req, res) => {
 
     await conn.query(
       `INSERT INTO practitioner (userid, type, licensenum, specialization, affiliation)
-       VALUES (?, 'doctor', ?, ?, ?)`,
+       VALUES (?, 'pharmacist', ?, ?, ?)`,
       [userResult.insertId, req.body.licensenum, req.body.specialization, req.body.affiliation || '']
     );
+
+    createLogs(req, 'CREATE_USER', `Created Pharmacist ${req.body.firstname + " " + req.body.lastname}`, 'pharmacist', userResult.insertId);
 
     await conn.commit();
 
@@ -267,7 +367,6 @@ app.post('/admin/doctors', async (req, res) => {
     conn.release();
   }
 });
-
 
 async function updatePractitioner(req, res, type) { 
   const id = req.params[`${type}id`];
@@ -305,10 +404,16 @@ async function updatePractitioner(req, res, type) {
     if (practitionerUpdate.cols.length) {
       await conn.query(
         `UPDATE practitioner SET ${practitionerUpdate.cols.join(', ')} WHERE userid = ? AND type = ?`,
-        [...practitionerUpdate.values, id, type]
+      [...practitionerUpdate.values, id, type]
       );
-    }
 
+      const [editResult] = await conn.query(`
+        SELECT * from user u JOIN practitioner p ON u.userid = p.userid WHERE u.userid = ?
+      `, [id]);
+
+      createLogs(req, 'EDIT_USER', `Updated user ${editResult[0].userid}`, editResult[0].type, req.session.userid);
+    }
+    
     await conn.commit();
 
     res.json({
@@ -329,9 +434,11 @@ async function updatePractitioner(req, res, type) {
   }
 }
 
+// update doctor - ADMIN ONLY
+app.put('/admin/doctors/:doctorid', requireAuth, requireAdmin, (req, res) => updatePractitioner(req, res, 'doctor'));
 
-app.put('/admin/doctors/:doctorid', (req, res) => updatePractitioner(req, res, 'doctor'));
-app.put('/admin/pharmacists/:pharmacistid', (req, res) => updatePractitioner(req, res, 'pharmacist'));
+// update pharmacist - ADMIN ONLY
+app.put('/admin/pharmacists/:pharmacistid', requireAuth, requireAdmin, (req, res) => updatePractitioner(req, res, 'pharmacist'));
 
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Admin API running on port ${PORT}`));
