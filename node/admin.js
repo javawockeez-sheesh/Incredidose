@@ -2,8 +2,10 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const session = require('express-session');
+const router = express.Router();
 
 const app = express();
+app.use('/api', router);
 
 app.use(cors({ origin: true, credentials: true, methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'] }));
