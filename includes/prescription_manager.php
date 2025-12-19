@@ -86,7 +86,7 @@ $action = $_GET['action'] ?? '';
 switch ($action) {
     case "getPrescriptions":
         $patientid = $_GET['patientid'] ?? '';
-        if (empty($patientid) && isDoctor()) {
+        if (empty($patientid) && !isDoctor()) {
             sendError(401, "Unauthorized Access");
             break;
         }

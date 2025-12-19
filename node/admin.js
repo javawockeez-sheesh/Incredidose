@@ -26,9 +26,9 @@ app.use(session({
 }));
 
 const db = mysql.createPool({
-  host: 'localhost',
+  host: 'db',
   user: 'root',
-  password: '',
+  password: '123',
   database: 'incredidose',
   port: 3306,
   waitForConnections: true,
@@ -442,5 +442,5 @@ app.put('/admin/doctors/:doctorid', requireAuth, requireAdmin, (req, res) => upd
 // update pharmacist - ADMIN ONLY
 app.put('/admin/pharmacists/:pharmacistid', requireAuth, requireAdmin, (req, res) => updatePractitioner(req, res, 'pharmacist'));
 
-const PORT = 3001;
+const PORT = 3000;
 app.listen(PORT, () => console.log(`Admin API running on port ${PORT}`));

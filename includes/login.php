@@ -69,7 +69,6 @@ function loginUser($email, $password) {
         'lastname' => $row['lastname'],
         'email' => $row['email'],
         'role' => $row['role'],
-        'token' => $token
     ];
 }
 

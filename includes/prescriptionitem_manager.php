@@ -91,26 +91,30 @@ if ($method === 'GET') {
 }
 elseif ($method === 'POST') {
 
-    $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+    function getJsonBody() {
+        $input = file_get_contents('php://input');
+        if (!$input) return [];
+        $data = json_decode($input, true);
+        return is_array($data) ? $data : [];
+    }
     
     switch ($action) {
+
        case "addPrescriptionItem":
-            $prescriptionid = $input['prescriptionid'] ?? '';
-            $name = $input['name'] ?? '';
-            $brand = $input['brand'] ?? '';
-            $quantity = $input['quantity'] ?? '';
-            $dosage = $input['dosage'] ?? '';
-            $frequency = $input['frequency'] ?? '';
-            $description = $input['description'] ?? '';
-            $substitutions = $input['substitutions'] ?? '';
 
-            if(!isDoctor() || !doctorOwnsPrescription($prescriptionid)){
+            $data = getJsonBody();
+            
+            $prescriptionid = $data['prescriptionid'] ?? '';
+            $name = $data['name'] ?? '';
+            $brand = $data['brand'] ?? '';
+            $quantity = $data['quantity'] ?? '';
+            $dosage = $data['dosage'] ?? '';
+            $frequency = $data['frequency'] ?? '';
+            $description = $data['description'] ?? '';
+            $substitutions = $data['substitutions'] ?? '';
+
+            if(!isDoctor()){
                 sendError(401, "Unauthorized Access");
-                break;
-            }
-
-            if (empty($prescriptionid) || empty($name)) {
-                sendError(400, "Missing field/s");
                 break;
             }
 

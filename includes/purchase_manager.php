@@ -34,7 +34,7 @@ function isPharmacist(){
 function getPurchasesByPrescription($prescriptionid) {
     global $db;
     $stmt = $db->prepare("
-        SELECT * FROM purchase p
+        SELECT i.*, pi.name, pi.brand, pi.dosage FROM purchase p
             INNER JOIN purchaseitem i ON p.purchaseid = i.purchaseid 
             INNER JOIN prescriptionitem pi ON i.prescriptionitemid = pi.prescriptionitemid
             WHERE p.prescriptionid = ?

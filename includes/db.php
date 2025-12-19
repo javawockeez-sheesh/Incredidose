@@ -1,7 +1,7 @@
 <?php
-    $dbserver = "localhost";
+    $dbserver = "db";
     $dbuser = "root";
-    $dbpass = "";
+    $dbpass = "123";
     $dbname = "incredidose";
     $port = 3306;
 

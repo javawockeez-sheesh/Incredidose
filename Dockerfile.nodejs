@@ -1,0 +1,15 @@
+FROM node:20
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY node/ ./node/
+
+WORKDIR /usr/src/app/node
+
+EXPOSE 3000
+
+CMD ["node", "admin.js"]

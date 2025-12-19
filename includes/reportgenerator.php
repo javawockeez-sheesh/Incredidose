@@ -332,37 +332,6 @@ function generateWeeklyFrequencyReport() {
                 <td>' . date('M d, Y', strtotime($item['dateprescribed'])) . '</td>
             </tr>';
         }
-        
-        $html .= '</table>';
-        
-        // Weekly Summary
-        $html .= '
-        <div class="section">
-            <div class="frequency-highlight">
-                <h3>Weekly Summary</h3>
-                <p>Based on your prescription frequencies:</p>
-                <ul>';
-        
-        if ($dailyMeds > 0) {
-            $html .= '<li><strong>' . $dailyMeds . ' medication(s)</strong> to be taken daily</li>';
-        }
-        if ($alternateDayMeds > 0) {
-            $html .= '<li><strong>' . $alternateDayMeds . ' medication(s)</strong> to be taken every other day</li>';
-        }
-        if ($weeklyMeds > 0) {
-            $html .= '<li><strong>' . $weeklyMeds . ' medication(s)</strong> to be taken weekly</li>';
-        }
-        if ($customFrequencyMeds > 0) {
-            $html .= '<li><strong>' . $customFrequencyMeds . ' medication(s)</strong> with custom frequencies</li>';
-        }
-        if ($asNeededMeds > 0) {
-            $html .= '<li><strong>' . $asNeededMeds . ' medication(s)</strong> to be taken as needed</li>';
-        }
-        
-        $html .= '</ul>
-                <p><em>Note: This schedule assumes you start medications on a Sunday. Adjust based on your actual start date.</em></p>
-            </div>
-        </div>';
     }
     
     $html .= '

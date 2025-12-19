@@ -57,7 +57,7 @@ function getPatientByEmail($email) {
 
 function getAllPatients() {
     global $db;
-    $result = $db->query("SELECT * FROM user");
+    $result = $db->query("SELECT * FROM user WHERE role = 'ptnt'");
     $data = [];
     while ($row = $result->fetch_assoc()) {
         $data[] = $row;
